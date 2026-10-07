@@ -1,0 +1,2779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2026-10-07 Wed 11:28 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>A Voxel Game in Dyalog APL</title>
+<meta name="author" content="Annotated reading of namgyaaal/avoxelgame" />
+<meta name="generator" content="Org Mode" />
+<style>
+@font-face{font-family:"APL387";src:url("assets/APL387.ttf") format("truetype");font-display:swap}
+/* Palette. Every text pair below is >= 6.6:1 against its own background,
+measured in both schemes; most are above 7.5:1 (WCAG AAA for body text). */
+:root{--ink:#121418;--muted:#474c57;--rule:#ccd0d9;--acc:#1d5a3d;--bg:#fcfcfd;
+--code:#f1f3f6;--panel:#ffffff;--link:#174a94;--chrome:#121418}
+html{-webkit-text-size-adjust:100%}
+body{max-width:52rem;margin:0 auto;padding:2rem 1rem 6rem;background:var(--bg);color:var(--ink);
+font:16px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+h1.title{font-size:2.1rem;line-height:1.2;margin:0 0 .2rem;color:var(--ink)}
+.subtitle{color:var(--muted);font-size:1.05rem;margin:0 0 1.2rem}
+h2{font-size:1.45rem;margin-top:2.6rem;padding-top:.7rem;border-top:1px solid var(--rule);color:var(--ink)}
+h3{font-size:1.12rem;color:var(--acc);margin-top:1.8rem}
+h4{font-size:1rem;margin-top:1.3rem;color:var(--ink)}
+#table-of-contents{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:.4rem 1.1rem 1rem}
+#table-of-contents h2{border:0;margin-top:.8rem;font-size:1.05rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+#table-of-contents ul{list-style:none;padding-left:1rem}
+#table-of-contents a{text-decoration:none}
+a{color:var(--link)}
+a:hover,a:focus{text-decoration:underline}
+pre,code,kbd{font-family:"APL387","APL385 Unicode",Menlo,"DejaVu Sans Mono",monospace}
+pre.src{background:var(--code);color:var(--ink);border:1px solid var(--rule);border-left:3px solid var(--acc);
+border-radius:5px;padding:.85rem 1rem;overflow-x:auto;font-size:.92rem;line-height:1.5}
+pre.src::before{color:var(--muted);background:var(--panel);border:1px solid var(--rule);font-size:.68rem;
+letter-spacing:.08em;text-transform:uppercase;padding:1px 6px;border-radius:3px;top:-.7em}
+pre.example{background:var(--panel);color:var(--ink);border:1px dashed var(--rule);border-radius:5px;
+padding:.8rem 1rem;overflow-x:auto;font-size:.9rem}
+code{background:var(--code);color:var(--ink);padding:1px 4px;border-radius:3px;font-size:.93em}
+blockquote{margin:1rem 0;padding:.1rem 1.1rem;border-left:3px solid var(--acc);color:var(--ink)}
+table{border-collapse:collapse;margin:1rem 0;font-size:.93rem;width:100%}
+th{background:var(--chrome);color:#fff;text-align:left}
+th,td{border:1px solid var(--rule);padding:.42rem .6rem;vertical-align:top;color:inherit}
+td{color:var(--ink)}
+.figure p{text-align:left}
+#postamble{color:var(--muted);font-size:.82rem;border-top:1px solid var(--rule);margin-top:3rem;padding-top:.8rem}
+.org-comment,.org-comment-delimiter{color:#464d5a;font-style:italic}
+.org-string{color:#0b5c3f}
+.org-keyword{color:#8a1f5e}
+.org-type,.org-function-name{color:#174a94}
+.org-builtin,.org-constant{color:#6f430c}
+.org-variable-name{color:var(--ink)}
+.org-function-name{font-weight:600}
+@media (prefers-color-scheme:dark){
+:root{--ink:#eceef2;--muted:#b6bcc9;--rule:#3a3f49;--acc:#8fd4ac;--bg:#15171b;
+--code:#22262e;--panel:#1b1f26;--link:#9cc4ff;--chrome:#2f343d}
+.org-comment,.org-comment-delimiter{color:#b4bcca}
+.org-string{color:#8fd9b0}
+.org-keyword{color:#f2a0d0}
+.org-type,.org-function-name{color:#9cc4ff}
+.org-builtin,.org-constant{color:#f0c27a}
+.org-variable-name{color:var(--ink)}}
+@media print{body{max-width:none;color:#000;background:#fff}pre.src,pre.example{border:1px solid #999}}
+</style>
+</head>
+<body>
+<div id="content" class="content">
+<header>
+<h1 class="title">A Voxel Game in Dyalog APL</h1>
+<p class="subtitle" role="doc-subtitle">A literate walkthrough of the implementation</p>
+</header><nav id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orga27cfd2">1. How to read, tangle and export this file</a>
+<ul>
+<li><a href="#org5f82e9d">1.1. Tangle targets</a></li>
+<li><a href="#org0727417">1.2. Why the APL blocks are inert</a></li>
+<li><a href="#orga581ae9">1.3. A one-minute APL primer</a></li>
+</ul>
+</li>
+<li><a href="#orgc442485">2. The question the code answers</a>
+<ul>
+<li><a href="#orgcd12774">2.1. Module map</a></li>
+</ul>
+</li>
+<li><a href="#shape">3. The shape of the world</a>
+<ul>
+<li><a href="#org3b9bbe0">3.1. One four-dimensional array, one inverted table</a></li>
+<li><a href="#org3f49c95">3.2. Memory, measured</a></li>
+</ul>
+</li>
+<li><a href="#faces">4. Every face a chunk could ever have</a>
+<ul>
+<li><a href="#org017304c">4.1. The face table</a></li>
+<li><a href="#org13f62e4">4.2. Expanding the table to the whole chunk</a></li>
+</ul>
+</li>
+<li><a href="#exposed">5. Selecting only the faces you can see</a>
+<ul>
+<li><a href="#org0d6d02d">5.1. Where this idea came from</a></li>
+<li><a href="#orgc6479b2">5.2. A known limitation, visible right here</a></li>
+<li><a href="#org997215c">5.3. Selecting, and what it costs</a></li>
+<li><a href="#org1a87f4c">5.4. The tangled demo</a></li>
+</ul>
+</li>
+<li><a href="#copy-chunk">6. The meshing kernel in full</a>
+<ul>
+<li><a href="#org8553554">6.1. Texture lookup, steps 2 to 4</a></li>
+<li><a href="#orgc2229e6">6.2. Bit packing, step 5</a></li>
+<li><a href="#orgc6cdb6c">6.3. Water, in the same kernel</a></li>
+</ul>
+</li>
+<li><a href="#terrain">7. Terrain</a>
+<ul>
+<li><a href="#orge4df9e5">7.1. Hashing the seed into a grid</a></li>
+<li><a href="#org22c55d7">7.2. Three octaves of value noise</a></li>
+<li><a href="#org82a58c7">7.3. From solidity to blocks</a></li>
+<li><a href="#org48280b9">7.4. One tree per chunk</a></li>
+</ul>
+</li>
+<li><a href="#streaming">8. Streaming and persistence</a>
+<ul>
+<li><a href="#orgfb7fc83">8.1. Unload, load, throttle</a></li>
+<li><a href="#org1e65ff0">8.2. Freeing the GPU side</a></li>
+<li><a href="#orgd82bba9">8.3. The save format</a></li>
+</ul>
+</li>
+<li><a href="#culling">9. Culling, in three generations</a>
+<ul>
+<li><a href="#org09c37d5">9.1. First attempt: an angle test</a></li>
+<li><a href="#org39559e3">9.2. Second attempt: corner points against six planes</a></li>
+<li><a href="#org2035ac1">9.3. What ships: bounding box against plane</a></li>
+<li><a href="#orgaab5d09">9.4. Drawing what survived</a></li>
+</ul>
+</li>
+<li><a href="#collision">10. Collision</a></li>
+<li><a href="#picking">11. Picking, and the function that is not used</a></li>
+<li><a href="#ffi">12. The seam with C and the GPU</a>
+<ul>
+<li><a href="#org316c5ae">12.1. What the shim is for, and why it exists</a>
+<ul>
+<li><a href="#orge3b3417">12.1.1. Tagged unions</a></li>
+<li><a href="#orgcfae7d8">12.1.2. Structs holding pointers to structs</a></li>
+<li><a href="#orgbb49f37">12.1.3. Linked lists and per-draw loops</a></li>
+</ul>
+</li>
+<li><a href="#org2c9f800">12.2. Declaring the bindings</a></li>
+<li><a href="#org0de20e5">12.3. The binding that does not work</a></li>
+<li><a href="#build">12.4. Building the shim</a></li>
+<li><a href="#orgfee594d">12.5. Shaders</a></li>
+</ul>
+</li>
+<li><a href="#frame">13. The frame, and the state machine</a>
+<ul>
+<li><a href="#orgf1d7bc3">13.1. States as labels and a computed goto</a></li>
+<li><a href="#org548d9f1">13.2. Input as a jump table</a></li>
+<li><a href="#orgb208894">13.3. One frame</a></li>
+</ul>
+</li>
+<li><a href="#text">14. Text and interface, the same table trick again</a></li>
+<li><a href="#labels">15. How arrays are labelled, and what the labels cost</a>
+<ul>
+<li><a href="#org682e805">15.1. The six mechanisms</a>
+<ul>
+<li><a href="#org12ff801">15.1.1. Labels the reader resolves</a></li>
+<li><a href="#org1c03b77">15.1.2. Labels resolved once, at load</a></li>
+<li><a href="#orgfbea5fb">15.1.3. Labels resolved on every use</a></li>
+</ul>
+</li>
+<li><a href="#org3a0dd59">15.2. The space effects</a>
+<ul>
+<li><a href="#orgfb49ba1">15.2.1. Column-major storage is a space win, not a cost</a></li>
+<li><a href="#orgc670ebe">15.2.2. The names themselves are free, the derived columns are not</a></li>
+<li><a href="#org43d6887">15.2.3. Where space is traded away deliberately</a></li>
+</ul>
+</li>
+<li><a href="#org22a6e18">15.3. The time effects</a>
+<ul>
+<li><a href="#org2e5c1f2">15.3.1. The name search is negligible, and should not be optimised</a></li>
+<li><a href="#orgf3543d6">15.3.2. The rebuilt column is the real cost</a></li>
+<li><a href="#org724387a">15.3.3. Three changes that keep every label and remove the cost</a></li>
+</ul>
+</li>
+<li><a href="#orgb8114e6">15.4. The honest summary</a></li>
+</ul>
+</li>
+<li><a href="#open">16. Where the array style runs out</a>
+<ul>
+<li><a href="#org5ef7870">16.1. Lighting does not exist</a></li>
+<li><a href="#org2479dc0">16.2. Water does not move</a></li>
+<li><a href="#org331b0b7">16.3. The author&rsquo;s own framing</a></li>
+<li><a href="#org95e9218">16.4. The rest of the open list</a></li>
+</ul>
+</li>
+<li><a href="#org47931ef">17. What the experiment showed</a></li>
+<li><a href="#export">18. Exporting this document</a></li>
+<li><a href="#orgbea3106">19. Sources</a></li>
+</ul>
+</div>
+</nav>
+<p>
+This file is a literate reading of the voxel engine in this repository. Every block of
+code is quoted from the source, and every block is followed by an explanation of what
+the array expression actually does to the data. The intent is that someone who does not
+read APL can still follow the data flow, and someone who does read APL can see why each
+expression was chosen.
+</p>
+
+<p>
+Three blocks are live Babel targets and tangle to runnable files. Everything else is
+marked <code>:tangle no :eval never</code>, because it is quoted from the engine rather than
+executed here. The engine itself needs Dyalog APL 20.0, SDL3 and a GPU; this machine has
+none of them, so no APL in this document has been run during its writing. Outputs that
+appear below are taken from the author&rsquo;s own measurements, and are labelled where they
+are.
+</p>
+<div id="outline-container-orga27cfd2" class="outline-2">
+<h2 id="orga27cfd2"><span class="section-number-2">1.</span> How to read, tangle and export this file</h2>
+<div class="outline-text-2" id="text-1">
+</div>
+<div id="outline-container-org5f82e9d" class="outline-3">
+<h3 id="org5f82e9d"><span class="section-number-3">1.1.</span> Tangle targets</h3>
+<div class="outline-text-3" id="text-1-1">
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Block</th>
+<th scope="col" class="org-left">Tangles to</th>
+<th scope="col" class="org-left">What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">The meshing chapters, collected by noweb</td>
+<td class="org-left"><code>tangle/faces_demo.apls</code></td>
+<td class="org-left">A standalone demo of the meshing kernel on a 3x3x3 chunk</td>
+</tr>
+
+<tr>
+<td class="org-left"><a href="#build">Building the C shim</a></td>
+<td class="org-left"><code>tangle/build.sh</code></td>
+<td class="org-left">The CMake invocation that produces <code>libLSE</code></td>
+</tr>
+
+<tr>
+<td class="org-left"><a href="#export">Exporting this document</a></td>
+<td class="org-left"><code>tangle/export.el</code></td>
+<td class="org-left">The batch Org export that produced <code>literate.html</code></td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Inside Emacs, <code>C-c C-v t</code> tangles all three. From a shell:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">emacs -Q --batch -l org --eval <span class="org-string">'(org-babel-tangle-file "literate.org")'</span>
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org0727417" class="outline-3">
+<h3 id="org0727417"><span class="section-number-3">1.2.</span> Why the APL blocks are inert</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+There is no <code>ob-apl</code>, so Babel cannot execute Dyalog from Org. The APL blocks therefore
+carry <code>:eval never</code> and exist to be read and tangled, not run. The tangled demo is run
+by Dyalog itself:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">chmod +x tangle/faces_demo.apls &amp;&amp; ./tangle/faces_demo.apls
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orga581ae9" class="outline-3">
+<h3 id="orga581ae9"><span class="section-number-3">1.3.</span> A one-minute APL primer</h3>
+<div class="outline-text-3" id="text-1-3">
+<p>
+Enough to read this document. APL evaluates right to left, and every primitive applies
+to whole arrays.
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Glyph</th>
+<th scope="col" class="org-left">Name</th>
+<th scope="col" class="org-left">Reading</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>⍳n</code></td>
+<td class="org-left">index</td>
+<td class="org-left">the first <code>n</code> integers, from 0 here because <code>⎕IO←0</code></td>
+</tr>
+
+<tr>
+<td class="org-left"><code>⍴</code></td>
+<td class="org-left">shape, reshape</td>
+<td class="org-left"><code>⍴a</code> is the shape of <code>a</code>; <code>s⍴a</code> reshapes <code>a</code> to shape <code>s</code></td>
+</tr>
+
+<tr>
+<td class="org-left"><code>⍉</code></td>
+<td class="org-left">transpose</td>
+<td class="org-left">reverse the axes</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>⊤</code></td>
+<td class="org-left">encode</td>
+<td class="org-left">rewrite numbers in a mixed radix, here the chunk dimensions</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>⌽ ⊖</code></td>
+<td class="org-left">rotate</td>
+<td class="org-left">cyclic shift along an axis</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>/ ⌿</code></td>
+<td class="org-left">replicate</td>
+<td class="org-left">with a boolean left argument, select; with a count, duplicate</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>∊</code></td>
+<td class="org-left">enlist</td>
+<td class="org-left">flatten completely</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>⍸</code></td>
+<td class="org-left">where</td>
+<td class="org-left">indices of the true elements</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>⍤</code></td>
+<td class="org-left">rank</td>
+<td class="org-left">apply a function to sub-arrays of a given rank</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>∘.f</code></td>
+<td class="org-left">outer product</td>
+<td class="org-left">every left item against every right item</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>⊢ ⊣</code></td>
+<td class="org-left">identity</td>
+<td class="org-left">pass the right or left argument through</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>+/ +⌿</code></td>
+<td class="org-left">reduce</td>
+<td class="org-left">fold along the last or first axis</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="outline-container-orgc442485" class="outline-2">
+<h2 id="orgc442485"><span class="section-number-2">2.</span> The question the code answers</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+The project is a bet: that APL notation makes a voxel engine easier to write, not
+harder. The test was six concrete capabilities, all of which had to hold 60 frames per
+second.
+</p>
+
+<ol class="org-ol">
+<li>Turn chunk data into vertex data.</li>
+<li>Cull chunks the camera cannot see.</li>
+<li>Collide the player against the world.</li>
+<li>Ray test for placing and breaking blocks.</li>
+<li>Generate terrain at a constant rate.</li>
+<li>Stream chunks in and out of memory as the player moves.</li>
+</ol>
+
+<p>
+All six work. The whole engine is small enough to quote in one document.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash"><span class="org-builtin">cd</span> ~/github/softwarewrighter/avoxelgame-fork
+wc -l avg/*.apln lse/src/*.c | sort -rn | sed -n <span class="org-string">'2,10p'</span>
+</pre>
+</div>
+
+<pre class="example" id="org36bff05">
+519 avg/world.apln
+345 avg/menu_state.apln
+276 avg/player.apln
+244 avg/world_state.apln
+209 avg/text.apln
+140 lse/src/pipeline.c
+140 avg/state.apln
+138 avg/world_ui.apln
+132 lse/src/utils.c
+</pre>
+
+<p>
+That is 2,442 lines of APL, 329 lines of C and 111 lines of GLSL for the entire game.
+The single file <code>avg/world.apln</code> holds chunk storage, meshing, terrain generation,
+streaming, disk persistence and frustum culling together, which is the whole point: the
+author can see all of it without switching context.
+</p>
+</div>
+<div id="outline-container-orgcd12774" class="outline-3">
+<h3 id="orgcd12774"><span class="section-number-3">2.1.</span> Module map</h3>
+<div class="outline-text-3" id="text-2-1">
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">File</th>
+<th scope="col" class="org-left">Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>avg/world.apln</code></td>
+<td class="org-left">Chunk table, meshing, terrain, streaming, persistence, culling</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>avg/player.apln</code></td>
+<td class="org-left">Camera, frustum, collision, input, block break and place</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>avg/world_state.apln</code></td>
+<td class="org-left">Per-frame update and draw order, pipelines, save lifecycle</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>avg/menu_state.apln</code></td>
+<td class="org-left">Title screen and save picker</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>avg/state.apln</code></td>
+<td class="org-left">State machine and application entry point</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>avg/text.apln</code></td>
+<td class="org-left">Font rasterisation into GPU buffers, two inverted tables</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>avg/world_ui.apln</code></td>
+<td class="org-left">In-world hotbar</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>avg/block_data.apln</code></td>
+<td class="org-left">Block types and the texture atlas</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>avg/lse.apln</code></td>
+<td class="org-left">Foreign function declarations for SDL3 and the C shim</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>lse/src/*.c</code></td>
+<td class="org-left">The C shim: events, pipeline assembly, memcpy, batched draws</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>shaders/glsl/*</code></td>
+<td class="org-left">Seven shaders, cross-compiled to Metal, SPIR-V and DXIL</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="outline-container-shape" class="outline-2">
+<h2 id="shape"><span class="section-number-2">3.</span> The shape of the world</h2>
+<div class="outline-text-2" id="text-shape">
+</div>
+<div id="outline-container-org3b9bbe0" class="outline-3">
+<h3 id="org3b9bbe0"><span class="section-number-3">3.1.</span> One four-dimensional array, one inverted table</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+A chunk is 16 wide, 128 tall and 16 deep. The world is not a collection of chunk
+objects; it is a single array whose major cells are chunks, beside a table whose rows
+line up with those cells.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">l &#8592; 16 128 16
+
+view_distance &#8592; 10
+max_chunks &#8592; 2*&#9064;1+2&#215;view_distance
+
+chunks &#8592; 0&#9076;&#9064;0,l
+cnames &#8592; <span class="org-string">'cx'</span> <span class="org-string">'cz'</span> <span class="org-string">'vb'</span> <span class="org-string">'wvb'</span> <span class="org-string">'idx_cnt'</span> <span class="org-string">'widx_cnt'</span> <span class="org-string">'dirty'</span>
+chunk_info &#8592; &#9068;&#9064;&#168;cnames
+</pre>
+</div>
+
+<p>
+<code>chunks</code> starts with shape <code>0 16 128 16</code>: zero chunks, each of the right shape. Loading a
+chunk is <code>chunks⍪blocks</code>. Unloading is <code>chunks⌿⍨←mask</code>. There is no allocator and no
+chunk class.
+</p>
+
+<p>
+<code>chunk_info</code> is an <b>inverted table</b>: one vector per column rather than one record per
+chunk. The columns are the chunk&rsquo;s x and z coordinate, its solid and water vertex buffer
+pointers, the index counts needed to draw each, and a dirty flag. Inverted storage is
+what lets every per-chunk operation stay a single whole-array expression, and it lets
+Dyalog squeeze each column to its own narrowest internal type.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">I&#8592;{&#9082;[&#9077;]}
+Im&#8592;{&#9082;[&#9077;;]}
+<span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Chunk column index
+</span>Ci &#8592; cnames&#8728;&#9075;&#8728;&#8838;
+<span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Chunk get
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Special cases:
+</span><span class="org-comment-delimiter">&#9053;   </span><span class="org-comment">- xz (zips x and z column)
+</span><span class="org-comment-delimiter">&#9053;   </span><span class="org-comment">- enc_xz (x z as decoded list -- note that isn't globally unique but is locally)
+</span>  Cg&#8592;{
+      &#9077;&#8801;<span class="org-string">'xz'</span>:&#8595;&#9033;&#8593;chunk_info&#9015;&#9064;&#8834;Ci<span class="org-string">'cx'</span> <span class="org-string">'cz'</span>
+      &#9077;&#8801;<span class="org-string">'enc_xz'</span>:(2*16)&#8869;&#8593;chunk_info&#9015;&#9064;&#8834;Ci<span class="org-string">'cx'</span> <span class="org-string">'cz'</span>
+      chunk_info&#8835;&#9064;Ci &#9077;
+  }
+</pre>
+</div>
+
+<p>
+<code>Ci</code> turns a column name into its position; <code>Cg</code> fetches a column by name. The two
+special cases earn their keep everywhere else in the file: <code>Cg'xz'</code> zips the coordinate
+columns into coordinate pairs, and <code>Cg'enc_xz'</code> folds each pair into one integer in base
+65536, which is the key used for the on-disk chunk index.
+</p>
+</div>
+</div>
+<div id="outline-container-org3f49c95" class="outline-3">
+<h3 id="org3f49c95"><span class="section-number-3">3.2.</span> Memory, measured</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+From the author&rsquo;s profiling, at view distance 8 with 289 chunks resident:
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Quantity</th>
+<th scope="col" class="org-left">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">Interpreter total, distance 8</td>
+<td class="org-left">22 MB</td>
+</tr>
+
+<tr>
+<td class="org-left">Chunk data alone, distance 8</td>
+<td class="org-left">9 MB</td>
+</tr>
+
+<tr>
+<td class="org-left">Interpreter total, distance 16</td>
+<td class="org-left">47 MB</td>
+</tr>
+
+<tr>
+<td class="org-left">Chunk data alone, distance 16</td>
+<td class="org-left">34 MB</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Block values fit in a byte, and Dyalog narrows the array to bytes without being asked.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-faces" class="outline-2">
+<h2 id="faces"><span class="section-number-2">4.</span> Every face a chunk could ever have</h2>
+<div class="outline-text-2" id="text-faces">
+<p>
+The meshing strategy is the single best illustration of why this project is written in
+APL. Rather than walking blocks and emitting faces, the engine precomputes <b>every face
+every block in a chunk could ever have</b>, once, at startup, and thereafter selects from
+that table with a boolean mask.
+</p>
+</div>
+<div id="outline-container-org017304c" class="outline-3">
+<h3 id="org017304c"><span class="section-number-3">4.1.</span> The face table</h3>
+<div class="outline-text-3" id="text-4-1">
+<div class="org-src-container">
+<pre class="src src-apl">faces &#8592; [
+0 1 0 &#8900; 0 1 1 &#8900; 0 0 1 &#8900; 0 0 0 <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Left
+</span>1 1 1 &#8900; 1 1 0 &#8900; 1 0 0 &#8900; 1 0 1 <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Right
+</span>1 0 0 &#8900; 0 0 0 &#8900; 0 0 1 &#8900; 1 0 1 <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Bottom
+</span>0 1 0 &#8900; 1 1 0 &#8900; 1 1 1 &#8900; 0 1 1 <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Top
+</span>1 1 0 &#8900; 0 1 0 &#8900; 0 0 0 &#8900; 1 0 0 <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Back
+</span>0 1 1 &#8900; 1 1 1 &#8900; 1 0 1 &#8900; 0 0 1 <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Front
+</span>]
+v_cnt &#8592; &#8802;faces
+</pre>
+</div>
+
+<p>
+Twenty-four rows, three columns: the corners of a unit cube, four per face, in the fixed
+order left, right, bottom, top, back, front. <b>That order is load-bearing.</b> The
+<a href="#exposed">exposed-face test</a> produces one boolean per face in exactly this order, and the two must agree or the mesh
+is garbage. This is the central invariant of the whole renderer and it is enforced by
+nothing but the layout of these two tables.
+</p>
+</div>
+</div>
+<div id="outline-container-org13f62e4" class="outline-3">
+<h3 id="org13f62e4"><span class="section-number-3">4.2.</span> Expanding the table to the whole chunk</h3>
+<div class="outline-text-3" id="text-4-2">
+<div class="org-src-container">
+<pre class="src src-apl">vertices&#8592;,[&#9075;2]faces+&#9060;1&#9060;2 1&#8866;&#9033;l&#8868;&#9075;&#215;/l
+indices&#8592;,0 1 2 0 2 3&#8728;.+&#9064;4&#215;&#9075;4&#247;&#9064;&#8802;vertices
+</pre>
+</div>
+
+<p>
+Read the first line right to left.
+</p>
+
+<ol class="org-ol">
+<li><code>×/l</code> is the block count, 32768 for a real chunk.</li>
+<li><code>⍳×/l</code> is the integers 0 to 32767.</li>
+<li><code>l⊤</code> rewrites each of those integers in the mixed radix <code>16 128 16</code>, which is exactly
+its <code>x y z</code> position in the chunk. The result has shape <code>3 32768</code>.</li>
+<li><code>⍉</code> flips it to <code>32768 3</code>: one row per block, holding that block&rsquo;s position.</li>
+<li><code>faces+⍤1⍤2 1</code> is the interesting part. The rank operator says: treat the left
+argument as a rank-2 array (the whole 24-by-3 face table) and the right argument as
+rank-1 cells (one position row at a time), then add them as vectors. So each block
+position is added to all 24 cube corners at once, giving shape <code>32768 24 3</code>.</li>
+<li><code>,[⍳2]</code> ravels the first two axes together, flattening to <code>786432 3</code>.</li>
+</ol>
+
+<p>
+The result is every vertex of every face of every block, in block-major order, 24 rows
+per block. The second line builds the matching index buffer: each quad becomes two
+triangles, <code>0 1 2 0 2 3</code>, offset by four per quad.
+</p>
+
+<p>
+The author measures this at <b>3.5 milliseconds</b>, paid once at startup.
+</p>
+
+<blockquote>
+<p>
+An earlier version of this expression, published in the write-up, read
+<code>,[⍳4] faces(+⍤2) v_cnt(⌿⍤2),[2.5] 3 0 1 2⍉l⊤⊢l⍴⍳×/l</code>. It inserted a length-one &ldquo;block&rdquo;
+axis with <code>,[2.5]</code>, replicated it 24 times, then rearranged four axes with a dyadic
+transpose. The current form gets there with one rank specification instead, and is
+shorter by half.
+</p>
+</blockquote>
+</div>
+</div>
+</div>
+<div id="outline-container-exposed" class="outline-2">
+<h2 id="exposed"><span class="section-number-2">5.</span> Selecting only the faces you can see</h2>
+<div class="outline-text-2" id="text-exposed">
+<p>
+Rendering all 786432 possible faces would be absurd. A face is visible when its block is
+solid and its neighbour in that direction is not. The array formulation of &ldquo;look at the
+neighbour&rdquo; is &ldquo;shift the whole chunk and compare&rdquo;.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">solid&#8592;chunk&gt;0
+exposed&#8592;&#8593;[0]{solid&gt;&#9077;}&#168;0 1 2&#8728;.{&#9077;&#8595;[&#9082;](0&lt;&#9077;)&#9021;[&#9082;]0,[&#9082;]solid}&#175;1 1
+m&#8592;&#8714;exposed
+</pre>
+</div>
+
+<p>
+The inner outer product pairs each of the three axes <code>0 1 2</code> with each of the two
+directions <code>¯1 1</code>, so the dfn runs six times, once per face direction. For each pair it
+builds the neighbour array:
+</p>
+
+<ul class="org-ul">
+<li><code>0,[⍺]solid</code> glues a plane of air onto the chosen axis, growing it by one.</li>
+<li><code>(0&lt;⍵)⌽[⍺]</code> rotates by one for the positive direction, by zero for the negative.</li>
+<li><code>⍵↓[⍺]</code> drops the surplus plane from whichever end.</li>
+</ul>
+
+<p>
+The product is <code>solid</code> shifted one step along one axis, with air shifted in from outside
+the chunk. Then <code>{solid&gt;⍵}¨</code> compares each shift against the original: greater-than on
+booleans is &ldquo;solid here, empty there&rdquo;, which is precisely &ldquo;this face is exposed&rdquo;.
+</p>
+
+<p>
+<code>↑[0]</code> mixes the six results so the chunk axes come first and the direction axes last,
+shape <code>16 128 16 3 2</code>. Ravelling that with <code>∊</code> therefore yields six booleans per block,
+in axis order x-, x+, y-, y+, z-, z+. Compare the <a href="#faces">face table</a>: left, right,
+bottom, top, back, front. They match, and that is the invariant holding the mesh
+together.
+</p>
+</div>
+<div id="outline-container-org0d6d02d" class="outline-3">
+<h3 id="org0d6d02d"><span class="section-number-3">5.1.</span> Where this idea came from</h3>
+<div class="outline-text-3" id="text-5-1">
+<p>
+The outer-product rotation is the same shape as the one in the one-line Conway&rsquo;s Game of
+Life that every APL learner meets:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">life &#8592; {&#8835;1 &#9077; &#8744;.&#8743; 3 4 = +/ +&#9023; &#175;1 0 1 &#8728;.&#8854; &#175;1 0 1 &#9021;&#168; &#8834;&#9077;}
+</pre>
+</div>
+
+<p>
+The author borrowed the rotate-and-compare idiom directly from it, and only months later
+recognised the borrowing as an instance of what Iverson called <b>suggestivity</b>: a good
+notation makes the expressions from one problem suggest the expressions for another.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc6479b2" class="outline-3">
+<h3 id="orgc6479b2"><span class="section-number-3">5.2.</span> A known limitation, visible right here</h3>
+<div class="outline-text-3" id="text-5-2">
+<p>
+The pad is a plane of <b>air</b>, not the neighbouring chunk. Faces on a chunk boundary are
+therefore always emitted and always drawn, even when the chunk next door has solid rock
+pressed against them. The cost is overdraw at every chunk seam. An earlier version used
+a precomputed <code>box</code> array that marked the chunk&rsquo;s shell and simply ignored edge blocks,
+which the author also described as suboptimal but fine. Neither version consults a
+neighbour, because doing so would mean indexing into the global chunk table from inside
+the per-chunk kernel.
+</p>
+</div>
+</div>
+<div id="outline-container-org997215c" class="outline-3">
+<h3 id="org997215c"><span class="section-number-3">5.3.</span> Selecting, and what it costs</h3>
+<div class="outline-text-3" id="text-5-3">
+<div class="org-src-container">
+<pre class="src src-apl">vert&#8592;vertices&#9023;&#9064;4/m
+&#9109;&#8592;<span class="org-string">'possible faces: '</span>,&#9045;4&#247;&#9064;&#8802;vertices
+&#9109;&#8592;<span class="org-string">'emitted faces:  '</span>,&#9045;4&#247;&#9064;&#8802;vert
+</pre>
+</div>
+
+<p>
+<code>4/m</code> duplicates each face&rsquo;s boolean four times, once per corner, and <code>⌿⍨</code> uses it to
+select rows of the precomputed table. One replicate, one compress, and the mesh is done.
+</p>
+
+<p>
+The author measures this selection at <b>0.46 milliseconds</b> per chunk, rising to <b>1.8
+milliseconds</b> once texture indices are included.
+</p>
+</div>
+</div>
+<div id="outline-container-org1a87f4c" class="outline-3">
+<h3 id="org1a87f4c"><span class="section-number-3">5.4.</span> The tangled demo</h3>
+<div class="outline-text-3" id="text-5-4">
+<p>
+The three noweb references below collect the blocks above into a script that runs the
+whole kernel on a 3x3x3 chunk holding two blocks, which is small enough to print. It is
+written for <code>dyalogscript</code> and has not been run here, because this machine has no Dyalog.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl"><span class="org-keyword">&#9109;IO</span>&#8592;0
+l&#8592;3 3 3
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-apl"><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Two blocks, types 4 and 8, side by side; everything else air
+</span>chunk&#8592;l&#9076;(&#215;/l)&#8593;4 8
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-apl">&lt;&lt;chunk-shape&gt;&gt;
+&lt;&lt;face-table&gt;&gt;
+&lt;&lt;all-faces&gt;&gt;
+&lt;&lt;mock-chunk&gt;&gt;
+&lt;&lt;exposed&gt;&gt;
+&lt;&lt;select&gt;&gt;
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-copy-chunk" class="outline-2">
+<h2 id="copy-chunk"><span class="section-number-2">6.</span> The meshing kernel in full</h2>
+<div class="outline-text-2" id="text-copy-chunk">
+<p>
+<code>Copy_chunk</code> is the function the whole experiment rests on. It takes a chunk, a mapped
+transfer buffer pointer and an offset, writes interleaved vertex data straight into GPU
+memory, and returns the byte sizes and index counts for the solid and water meshes. It
+is fourteen lines of substance.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">Copy_chunk&#8592;{
+    (chunk ptr offset)&#8592;&#9077;
+    flat&#8592;&#8714;chunk
+    solid&#8592;chunk&gt;0
+    exposed&#8592;&#8593;[0]{solid&gt;&#9077;}&#168;0 1 2&#8728;.{&#9077;&#8595;[&#9082;](0&lt;&#9077;)&#9021;[&#9082;]0,[&#9082;]solid}&#175;1 1 <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">(1)
+</span>    vert&#8592;vertices&#9023;&#9064;4/m&#8592;&#8714;exposed
+    tex&#8592;(&#9075;&#215;/l)(&#215;&#9060;&#175;1),[1+&#9075;2],[&#9075;3]exposed                  <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">(2)
+</span>    tex&#8592;&#8714;(&#9075;6)(+&#9060;1)6&#215;flat[tex]                            <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">(3)
+</span>    tex&#8592;4/m/,##.block_data.tex_z[tex]                    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">(4)
+</span>    vert+&#8592;(3,&#9064;&#8802;vert)&#9076;128&#215;[0 0 0 &#8900; 0 0 1 &#8900; 1 0 1 &#8900; 1 0 0] <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">(5)
+</span>    buf&#8592;&#8714;vert,tex
+    vs&#8592;&#8802;buf
+    ic&#8592;6&#215;4&#247;&#9064;&#8802;vert
+    _&#8592;##.LSE_MemcpyU8(ptr+offset)buf vs
+</pre>
+</div>
+</div>
+<div id="outline-container-org8553554" class="outline-3">
+<h3 id="org8553554"><span class="section-number-3">6.1.</span> Texture lookup, steps 2 to 4</h3>
+<div class="outline-text-3" id="text-6-1">
+<p>
+Step 2 reshapes <code>exposed</code> from <code>16 128 16 3 2</code> down to one row of six booleans per
+block, then multiplies each row by that block&rsquo;s linear index with <code>×⍤¯1</code>, rank minus one
+meaning &ldquo;all axes but the last&rdquo;. The result holds the block index where a face is
+exposed and zero where it is not.
+</p>
+
+<p>
+Step 3 uses those indices to read the block type out of the flattened chunk, multiplies
+by six because each block type has six face textures, and adds <code>⍳6</code> along each row to
+pick the slot for that specific face. Unexposed entries read block type zero, which is
+air; harmless, because step 4 filters them out.
+</p>
+
+<p>
+Step 4 indexes the per-face atlas layers, compresses by the exposure mask, and duplicates
+each by four to match the four corners of its quad. <code>vert</code> and <code>tex</code> now have the same
+number of rows, which is what makes the final <code>∊vert,tex</code> a correctly interleaved vertex
+buffer.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc2229e6" class="outline-3">
+<h3 id="orgc2229e6"><span class="section-number-3">6.2.</span> Bit packing, step 5</h3>
+<div class="outline-text-3" id="text-6-2">
+<p>
+Each vertex is a single <code>SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4</code>: four bytes for position
+x, y, z and texture layer. The chunk is only 16 wide and 16 deep, so x and z need five
+bits each, leaving their top bits free. Step 5 adds 128 to x and z on a four-row cycle,
+which sets those spare bits to encode which corner of the quad this vertex is. The
+shader unpacks them:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-glsl">layout (location = 0) in uvec4 position;
+
+void main() {
+    vec4 pos = vec4(position.x &amp; 0x001F, position.y, position.z &amp; 0x001F, 1.0);
+    gl_Position = mvp * pos;
+    o_uv = vec3(position.z&gt;&gt;7, position.x&gt;&gt;7, position.w);
+    o_z_depth = gl_Position.z;
+}
+</pre>
+</div>
+
+<p>
+So the texture coordinate is carried for free in two bits that the position was not
+using. This is the change described in the commit &ldquo;massive reduction in vertex memory
+cost at expense of changing a line dear to me&rdquo;. It also sidesteps a language-level
+constraint: array languages have doubles but no single-precision floats, and packing
+everything into bytes means the question never arises.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc6cdb6c" class="outline-3">
+<h3 id="orgc6cdb6c"><span class="section-number-3">6.3.</span> Water, in the same kernel</h3>
+<div class="outline-text-3" id="text-6-3">
+<div class="org-src-container">
+<pre class="src src-apl">    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Water
+</span>    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Note that if there's an ocean, only sea level is rendered (not every water block)
+</span>    w_p&#8592;&#9033;l&#8868;&#9080;&#8714;(chunk=&#175;1)(2&gt;&#9023;&#9060;2&#9066;&#9060;2)&#8866;0&#9076;&#9064;&#8835;l                            <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">(1, 2)
+</span>    vert&#8592;,[&#9075;2][0 0 0 &#8900; 1 0 0 &#8900; 1 0 1 &#8900; 0 0 1](+&#9060;2)4(&#9023;&#9060;2),[0.5]w_p <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">(3)
+</span>    vert+&#8592;(3,&#9064;&#8802;vert)&#9076;128&#215;[0 0 0 &#8900; 0 0 1 &#8900; 1 0 1 &#8900; 0 0 1]          <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">(4)
+</span>    buf&#8592;&#8714;vert,6
+    wvs&#8592;&#8802;buf
+    wic&#8592;6&#215;4&#247;&#9064;&#8802;vert
+    _&#8592;##.LSE_MemcpyU8(ptr+offset+vs)buf wvs
+    (vs ic wvs wic)
+}
+</pre>
+</div>
+
+<p>
+Water is block value <code>¯1</code>, deliberately negative so that <code>chunk&gt;0</code> in the solid path
+skips it. The expression appends a plane of air above the chunk, then pairwise-reduces
+with greater-than down the vertical axis, which is true exactly where a water block has
+no water above it: the surface layer. <code>⍸</code> gives the linear indices, <code>l⊤</code> decodes them
+back to positions, and each becomes one upward-facing quad with the same corner-bit
+trick. Submerged water is never meshed, so an ocean costs one sheet of quads regardless
+of depth, and looks wrong from underneath.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-terrain" class="outline-2">
+<h2 id="terrain"><span class="section-number-2">7.</span> Terrain</h2>
+<div class="outline-text-2" id="text-terrain">
+</div>
+<div id="outline-container-orge4df9e5" class="outline-3">
+<h3 id="orge4df9e5"><span class="section-number-3">7.1.</span> Hashing the seed into a grid</h3>
+<div class="outline-text-3" id="text-7-1">
+<div class="org-src-container">
+<pre class="src src-apl"><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">FNV Hash Function based off of Hsu's implementation (?) in MicroUI-APL
+</span><span class="org-comment-delimiter">&#9053;    </span><span class="org-comment">with suggestions from dzaima and Marshall Lochbaum
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Modified to work column-by-column on a 2d array
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Prime is &#8804;2*8 because I only care about [0, 256)
+</span>Hash_byte &#8592; {256|&#8835;(147&#215;(8&#9076;2)&#8869;&#8800;&#9061;((8&#9076;2)&#8728;&#8868;))/&#8595;&#9033;1&#8595;83 <span class="org-keyword">&#9109;DR</span>(&#175;1+2*31)&#9066;&#9077;}
+</pre>
+</div>
+
+<p>
+A column-wise FNV hash reduced over the rows of a coordinate matrix, producing one byte
+per column. <code>83 ⎕DR</code> reinterprets the integers as bit patterns so the exclusive-or can
+work on bits, and the prime is kept under 256 because only a byte of output is wanted.
+This is how the terrain stays reproducible from a stored seed rather than from stored
+state.
+</p>
+</div>
+</div>
+<div id="outline-container-org22c55d7" class="outline-3">
+<h3 id="org22c55d7"><span class="section-number-3">7.2.</span> Three octaves of value noise</h3>
+<div class="outline-text-3" id="text-7-2">
+<div class="org-src-container">
+<pre class="src src-apl"><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Various octaves used in noise sampling
+</span>Patch&#8592;{(&#9077; 64 &#9077;)(&#247;&#9060;1)&#9064;0.5+&#9033;16 64 16&#8868;&#9075;16&#215;64&#215;16}
+(f4 f6 f8 f16)&#8592;Patch&#168;64 80 128 256
+<span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Trilinear interpolate (&#9082;) arbitary points [0,1] in R*3 inside (&#9077;) 8-point cube
+</span>trilerp&#8592;{v&#8592;(2 &#8900; i&#8592;2&#247;&#9064;&#8802;&#9077;)&#9076;&#9077; &#8900; d&#8592;&#9082;[;4 2 1&#9075;i] &#8900; (1-d &#8900; d)+.&#215;v}&#9059;3
+<span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Give 3d noise a "surface"
+</span>gradient_mask&#8592;&#8714;((&#9021;7&#247;&#9064;1.1+&#9075;4),(196&#247;&#9064;&#9021;&#175;32+&#9075;60))+&#9060;&#175;1&#9060;2&#8866;16 64 16&#9076;0
+</pre>
+</div>
+
+<p>
+<code>Patch</code> precomputes, for a given octave frequency, the fractional offset of every sample
+point inside its cell. <code>trilerp</code> is trilinear interpolation written as a power operator
+applied three times, once per axis, each application halving the number of corner values
+until one remains. <code>gradient_mask</code> is a vertical bias added to the noise field: without
+it, three-dimensional noise gives caves and floating rock with no ground plane, so the
+mask tilts the threshold with height and produces a surface.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl"><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Very basic 3d fractal value selector noise
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">right(r) is chosen with more probability and is
+</span><span class="org-comment-delimiter">&#9053;   </span><span class="org-comment">more "smooth" (16-chunk octave) while
+</span><span class="org-comment-delimiter">&#9053;   </span><span class="org-comment">left(l) is sampled for occasional cliffs + overhang
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">- This eats up a lot of performance compared to 2d
+</span><span class="org-comment-delimiter">&#9053;     </span><span class="org-comment">perlin noise but looks cooelr lol
+</span>l1&#8592;&#8835;(f4(+&#9060;1)4&#247;&#9064;4|pos)trilerp rand_vec[(0&#8835;perms)[v]]
+l2&#8592;&#8835;(f8(+&#9060;1)8&#247;&#9064;8|pos)trilerp rand_vec[(1&#8835;perms)[v2]]
+
+r1&#8592;&#8835;(f4(+&#9060;1)4&#247;&#9064;4|pos)trilerp rand_vec[(3&#8835;perms)[v]]
+r2&#8592;&#8835;(f8(+&#9060;1)8&#247;&#9064;8|pos)trilerp rand_vec[(4&#8835;perms)[v2]]
+r3&#8592;&#8835;(f16(+&#9060;1)16&#247;&#9064;16|pos)trilerp rand_vec[(5&#8835;perms)[v3]]
+
+s1&#8592;&#8835;(f4(+&#9060;1)4&#247;&#9064;4|pos)trilerp rand_vec[(5&#8835;perms)[v]]
+s2&#8592;&#8835;(f8(+&#9060;1)8&#247;&#9064;8|pos)trilerp rand_vec[(6&#8835;perms)[v2]]
+
+select&#8592;1&#8968;0&#8970;10&#215;(s1&#215;0.33)+(s2&#215;0.66)
+left&#8592;(l1&#215;0.66)+(l2&#215;0.33)
+right&#8592;(r1&#215;0.3)+(r2&#215;0.3)+(r3&#215;0.4)
+
+solid&#8592;0.5&lt;gradient_mask+(left&#215;(1-select))+(right&#215;(select))
+</pre>
+</div>
+
+<p>
+Three fields are sampled, each from a different permutation of the same random gradient
+vector: a rough one, a smooth one, and a third used only as a <b>selector</b> that blends
+between the first two. Where the selector is low the terrain follows the rough field and
+produces cliffs and overhangs; where it is high it follows the smooth field. The
+threshold at 0.5 turns the field into a boolean solidity mask. The author&rsquo;s own comment
+concedes the cost, and the write-up names two-dimensional Perlin noise as the intended
+replacement.
+</p>
+</div>
+</div>
+<div id="outline-container-org82a58c7" class="outline-3">
+<h3 id="org82a58c7"><span class="section-number-3">7.3.</span> From solidity to blocks</h3>
+<div class="outline-text-3" id="text-7-3">
+<div class="org-src-container">
+<pre class="src src-apl">blocks&#8592;l&#9076;0
+blocks[;&#9075;10;]&#8592;STONE  <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Noise properly starts at 11, below make it only stone
+</span>
+m&#8592;16 64 16&#9076;solid     <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">terrain mask
+</span>s&#8592;m(2&gt;&#9023;&#9060;2&#9066;&#9060;2)&#8866;0&#9076;&#9064;&#8835;l  <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">surface mask
+</span>sp&#8592;&#9080;s                <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">where surface is
+</span>
+d&#8592;STONE@&#8866;m
+d[sp]&#8592;GRASS
+
+d[0&#8968;(0 &#175;1 0 &#8900; )+sp]&#8592;DIRT
+d[0&#8968;(0 &#175;2 0 &#8900; )+sp]&#8592;DIRT
+d[0&#8968;(0 &#175;3 0 &#8900; )+sp]&#8592;DIRT
+d[0&#8968;(0 &#175;4 0 &#8900; )+sp]&#8592;DIRT
+
+blocks[;10+&#9075;64;]&#8592;d
+
+<span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Empty blocks below 21 set to water
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">If block is grass or dirt below 21 set to sand
+</span>blocks[;&#9075;20;]&#8592;&#175;1@(1&#8728;&gt;)&#8866;blocks[;&#9075;20;]
+blocks[;&#9075;22;]&#8592;(SAND)@(&#8714;&#8728;(GRASS DIRT))&#8866;blocks[;&#9075;22;]
+</pre>
+</div>
+
+<p>
+Note the same surface idiom as the water mesh, reused here to find the topmost solid
+block of each column. Soil is then painted by offsetting those surface indices downward
+four times. The whole column is 128 blocks tall but noise fills only a 64-block band,
+with solid stone beneath and air above, so a good part of the vertical range is currently
+unused.
+</p>
+
+<p>
+Water and sand are placed by <b>at</b>, <code>@</code>, which is APL&rsquo;s functional update: &ldquo;replace, where
+this predicate holds, with this value&rdquo;, leaving everything else alone. No loop, no
+conditional.
+</p>
+</div>
+</div>
+<div id="outline-container-org48280b9" class="outline-3">
+<h3 id="org48280b9"><span class="section-number-3">7.4.</span> One tree per chunk</h3>
+<div class="outline-text-3" id="text-7-4">
+<div class="org-src-container">
+<pre class="src src-apl"><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Tree :-)
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">From surface points filter out
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Edges (Want tree contained inside chunk)
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Where it's too low
+</span>sp&#8592;&#8595;({(27&lt;1&#8835;&#9077;)&#8743;&#8743;/(2&#8728;&lt;&#8743;14&#8728;&gt;)(&#8834;0 2)&#9015;&#9077;}&#9060;1)&#9051;&#9023;&#8593;(0 11 0 &#8900; )+sp
+:If (0&#8800;&#9076;sp)
+    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">For deterministic tree placement
+</span>    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">(shoddy way to do it but only 1 tree per chunk..)
+</span>    rns&#8592;(<span class="org-keyword">&#9109;RL</span>:|4192 4192 4192&#8869;pair,seed)
+    (tx ground tz)&#8592;&#8835;sp&#9015;&#9064;rns.?&#9076;sp
+    ty&#8592;3+rns.?3
+    blocks[tx;ground+&#9075;ty;tz]&#8592;LOG
+    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Random chance of apple leafs
+</span>    leaves&#8592;APPLE_LEAF LEAF[0.9&gt;rns.?5 2 5&#9076;0]
+    blocks[tx+&#175;2+&#9075;5;(ground &#8900; ground+1)+ty;tz+&#175;2+&#9075;5]&#8592;leaves
+</pre>
+</div>
+
+<p>
+The candidate positions are filtered to those at least two blocks from every chunk edge,
+so a tree can never cross a boundary and the generator never needs to touch a
+neighbouring chunk. A namespace-local random state seeded from the chunk coordinate and
+the world seed makes the choice deterministic. The leaf canopy is a random boolean array
+indexing a two-element block list, so the apples scatter themselves. The author&rsquo;s comment
+is candid about the ceiling this imposes: one tree per chunk, at most.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-streaming" class="outline-2">
+<h2 id="streaming"><span class="section-number-2">8.</span> Streaming and persistence</h2>
+<div class="outline-text-2" id="text-streaming">
+</div>
+<div id="outline-container-orgfb7fc83" class="outline-3">
+<h3 id="orgfb7fc83"><span class="section-number-3">8.1.</span> Unload, load, throttle</h3>
+<div class="outline-text-3" id="text-8-1">
+<div class="org-src-container">
+<pre class="src src-apl">&#8711; Update_range(device x z);range;m;m2;pair;set_m;ax;az;y;p;rns;new;old
+  disk_cnt&#8592;max_disk <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Refresh disk read/writes allowed
+</span>  (ax az)&#8592;(&#8970;16&#247;&#9064;x z)
+  range&#8592;(ax az &#8900; )+,&#8728;.,&#9064;(&#9075;1+2&#215;view_distance)-view_distance
+  new&#8592;range~Cg<span class="org-string">'xz'</span>
+  old&#8592;range~&#9064;Cg<span class="org-string">'xz'</span>
+
+  <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Unload chunks
+</span>  m&#8592;~old&#8714;&#9064;Cg<span class="org-string">'xz'</span> <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Kept
+</span>  <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">only select up to max_disk-disk_cnt from stale chunks to unload
+</span>  m&#8592;disk_cnt{1@(&#9082;&#8595;&#9080;~&#9077;)&#8866;&#9077;}m
+  disk_cnt-&#8592;+/~m
+</pre>
+</div>
+
+<p>
+<code>range</code> is the square of chunk coordinates the player should have resident, built with an
+outer product. Set difference in both directions gives exactly what to load and what to
+drop, with no bookkeeping in between. <code>new</code> and <code>old</code> are the two answers from one
+comparison.
+</p>
+
+<p>
+The third expression is the throttle, and it is the most recent change in the repository.
+<code>max_disk</code> is 2: at most two disk operations per frame, whether reads or writes. The
+<code>1@(⍺↓⍸~⍵)</code> idiom finds the positions marked for unloading, skips the first <code>disk_cnt</code> of
+them, and flips the rest back to &ldquo;keep&rdquo;, deferring them to later frames. Before this
+existed, a burst of chunk unloading produced a visible frame-time spike. The commit
+message adds an open question: whether reading several component records in one system
+call would beat this fixed budget.
+</p>
+</div>
+</div>
+<div id="outline-container-org1e65ff0" class="outline-3">
+<h3 id="org1e65ff0"><span class="section-number-3">8.2.</span> Freeing the GPU side</h3>
+<div class="outline-text-3" id="text-8-2">
+<div class="org-src-container">
+<pre class="src src-apl">{ <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">(major cell index &#8900; index into chunk hash array)
+</span>    (packR chunks&#9015;&#9064;&#8835;&#9077;)<span class="org-keyword">&#9109;FREPLACE</span>(map &#8900; 2+1&#8835;&#9077;)
+}{&#9082;&#9082;&#168;&#8728;&#8595;&#9059;(~0&#8714;&#9076;&#9077;)&#8866;&#9077;}(~m)&#9023;&#9033;[&#9075;&#8802;chunks &#8900; mapi&#9075;Cg<span class="org-string">'enc_xz'</span>]
+chunks&#9023;&#9064;&#8592;m
+set_m&#8592;(0&#8800;Cg<span class="org-string">'vb'</span>)&#8743;~m
+{0&#8801;&#9077;: &#8900; _&#8592;##.SDL_ReleaseGPUBuffer device &#9077;}&#168;set_m/Cg<span class="org-string">'vb'</span>
+{0&#8801;&#9077;: &#8900; _&#8592;##.SDL_ReleaseGPUBuffer device &#9077;}&#168;set_m/Cg<span class="org-string">'wvb'</span>
+chunk_info&#8592;m&#8728;/&#168;chunk_info
+</pre>
+</div>
+
+<p>
+Chunks leaving memory are run-length packed with <code>packR</code> from the <code>dfns</code> workspace and
+written back to their component record. Then one compress drops them from the
+four-dimensional array, their vertex buffers are released, and one more compress across
+every column prunes the table. Five lines to evict a chunk completely.
+</p>
+
+<p>
+This is also where the write-up and the code have diverged. The article describes a
+<code>vb_fenced</code> queue and pools of shared vertex buffers, released back to the pool once the
+GPU had finished with them. Neither exists now: buffers are created and released
+individually, per chunk, per upload. <code>max_chunks</code>, the pool capacity, is still computed
+at the top of the file and never read. The readme&rsquo;s unexplained system error 999 on a
+second play session, attributed to leaks, is most likely to be found here.
+</p>
+</div>
+</div>
+<div id="outline-container-orgd82bba9" class="outline-3">
+<h3 id="orgd82bba9"><span class="section-number-3">8.3.</span> The save format</h3>
+<div class="outline-text-3" id="text-8-3">
+<div class="org-src-container">
+<pre class="src src-apl"><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">------------
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">File Storage
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">------------
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Maps are saved in one large APL component file where first element
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">is an array that is hashed when loaded that is used as way to get
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">index of chunks based off of their coordinates, which are the further
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">elements.
+</span>map&#8592;0 <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">set in world Init
+</span>mapi&#8592;(1500&#9014;)&#9068; <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">(2*16)&#8869;x y
+</span>empty_rle&#8592;(l&#8900;(&#215;/l&#8900;)&#8900;(0&#8900;))
+</pre>
+</div>
+
+<p>
+One Dyalog component file per world. Record 1 is the index: a vector of coordinates
+folded into base 65536, wrapped in <code>(1500⌶)</code> so the interpreter maintains a hash table
+over it and <code>mapi⍳key</code> is constant time. Records 2 onward are the packed chunks, in
+creation order. Lookup is <code>mapi⍳(2*16)⊥pair</code>, and that index plus two is the component
+number.
+</p>
+
+<p>
+Player state goes in a second component file beside it, through Dyalog&rsquo;s variable get and
+set on a namespace:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">&#8711; <span class="org-function-name">Save</span> save
+  save.<span class="org-keyword">&#9109;VSET</span>(
+      (<span class="org-string">'player_x'</span>x)
+      (<span class="org-string">'player_y'</span>y)
+      (<span class="org-string">'player_z'</span>z)
+      (<span class="org-string">'player_yaw'</span>yaw)
+      (<span class="org-string">'player_pitch'</span>pitch)
+      (<span class="org-string">'vy'</span>vy)
+      (<span class="org-string">'noclip'</span>noclip)
+  )
+&#8711;
+</pre>
+</div>
+
+<p>
+The world seed is persisted the same way, which is what makes hashed terrain generation a
+substitute for storing the terrain itself: unvisited chunks cost nothing on disk and come
+back identical.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-culling" class="outline-2">
+<h2 id="culling"><span class="section-number-2">9.</span> Culling, in three generations</h2>
+<div class="outline-text-2" id="text-culling">
+<p>
+This section is the clearest evidence for the project&rsquo;s central claim, that APL is fast
+to iterate in. The visibility test was rewritten twice, each time in a handful of lines,
+each time while the author was, by their own account, half asleep.
+</p>
+</div>
+<div id="outline-container-org09c37d5" class="outline-3">
+<h3 id="org09c37d5"><span class="section-number-3">9.1.</span> First attempt: an angle test</h3>
+<div class="outline-text-3" id="text-9-1">
+<div class="org-src-container">
+<pre class="src src-apl">vec&#8592;[0 0 &#8900; w 0 &#8900; 0 w &#8900; w w](+&#9060;2)4/[1],[0.5]&#8593;(&#8834;px pz-lx lz&#215;w&#215;0.25)-&#9064;(w&#8592;&#8835;l)&#215;Cg<span class="org-string">'xz'</span>
+dist&#8592;0.5*&#9064;+/[2]vec*2
+num&#8592;(lx lz)(+.&#215;&#9060;1)&#8593;vec
+den&#8592;dist&#215;0.5*&#9064;+/(lx lz)*2
+m&#8592;(Cg<span class="org-string">'ready'</span>)&#8743;&#8744;/(&#9675;70&#247;180)&gt;&#175;2&#9675;num(<span class="org-keyword">&#9109;DIV</span>:1).&#247;den <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Chance that distance could be 0</span>
+</pre>
+</div>
+
+<p>
+Each chunk&rsquo;s four corners were projected onto the horizontal plane and tested against the
+camera&rsquo;s field of view as an angle. A friend pointed out the flaw: a cone pointed
+downward still contains things behind the viewer.
+</p>
+</div>
+</div>
+<div id="outline-container-org39559e3" class="outline-3">
+<h3 id="org39559e3"><span class="section-number-3">9.2.</span> Second attempt: corner points against six planes</h3>
+<div class="outline-text-3" id="text-9-2">
+<div class="org-src-container">
+<pre class="src src-apl">frs&#8592;##.player.Get_frustum (&#9675;70&#247;180&#8900;1280&#247;720&#8900;0.1&#8900;500.0)
+n&#8592;3&#8593;[1]frs
+d&#8592;,3&#8595;[1]frs
+(w h)&#8592;(&#8835;l &#8900; 1&#8835;l)
+box&#8592;[
+      0 0 0 &#8900; w 0 0 &#8900; 0 0 w &#8900; w 0 w
+      0 h 0 &#8900; w h 0 &#8900; 0 h w &#8900; w h w
+]
+vec&#8592;box(+&#9060;2)8/[1],[0.5]&#9021;2&#9021;0,(w&#8592;&#8835;l)&#215;&#8593;Cg<span class="org-string">'xz'</span>
+t&#8592;~(&#8743;/&#9060;1)(&#8744;/&#9060;1)0&gt;d(-&#9060;1)&#9064; n(+.&#215;&#9060;2 1)vec
+t2 &#8592; (2&#215;w)&gt;({0.5*&#9064;+/&#9077;*2}&#9060;1)&#8593;(&#8834;px pz)-&#9064;w&#215;Cg<span class="org-string">'xz'</span>
+m&#8592;(t2&#8744;t)&#8743;(Cg<span class="org-string">'ready'</span>)
+</pre>
+</div>
+
+<p>
+Proper frustum planes, tested against all eight corners of each chunk. This worked while
+chunks were 32 blocks tall. Raising the height limit to 128 broke it, because a tall box
+can have every corner outside the frustum while its middle is squarely inside.
+</p>
+</div>
+</div>
+<div id="outline-container-org2035ac1" class="outline-3">
+<h3 id="org2035ac1"><span class="section-number-3">9.3.</span> What ships: bounding box against plane</h3>
+<div class="outline-text-3" id="text-9-3">
+<div class="org-src-container">
+<pre class="src src-apl">&#8711; Draw_chunks(core cmd_buf pass px pz lx lz proj_view);w;m;...
+  <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Frustum Culling
+</span>  (n d)&#8592;##.player.Get_frustum(&#9675;70&#247;180 &#8900; core.w&#247;core.h &#8900; 0.1 &#8900; 500)
+  <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">https://gdbooks.gitbooks.io/3dcollisions/content/Chapter2/static_aabb_plane.html
+</span>  centers&#8592;(w&#247;2 &#8900; 2&#247;&#9064;h&#8592;1&#8835;l &#8900; w&#247;2)(+&#9060;1)&#9021;2&#9021;0,(w&#8592;&#8835;l)&#215;&#8593;Cg<span class="org-string">'xz'</span>
+  r&#8592;+/(|n)(&#215;&#9060;1)(w &#8900; h &#8900; w)&#247;2
+  m&#8592;(~Cg<span class="org-string">'dirty'</span>)&#8743;&#8743;/(-r)(&#8804;&#9060;1)d(-&#9060;1)&#9064;n(+.&#215;&#9060;2 1)centers
+</pre>
+</div>
+
+<p>
+The standard bounding-box-versus-plane test. <code>centers</code> places each chunk&rsquo;s centre,
+<code>r</code> is its projected radius onto each plane normal, and the last line is one inner
+product across every loaded chunk at once, giving a boolean per chunk. A chunk still
+waiting to be uploaded is excluded by the dirty flag in the same expression.
+</p>
+
+<p>
+Three complete rewrites of the visibility system, none longer than six lines. The author
+contrasts this explicitly with doing the same work in Rust or C++, where pinning down the
+structure took dozens of lines before the idea could be tested at all.
+</p>
+</div>
+</div>
+<div id="outline-container-orgaab5d09" class="outline-3">
+<h3 id="orgaab5d09"><span class="section-number-3">9.4.</span> Drawing what survived</h3>
+<div class="outline-text-3" id="text-9-4">
+<div class="org-src-container">
+<pre class="src src-apl"><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Fog Start -- Fog End [10, 15]
+</span>_&#8592;##.SDL_PushGPUFragmentUniformData cmd_buf 0(view_distance&#215;10 15)(4&#215;2)
+
+m2&#8592;m&#8743;0&#8800;vbs&#8592;Cg<span class="org-string">'vb'</span>
+vbs&#8592;m2/vbs
+inds&#8592;m2/Cg<span class="org-string">'idx_cnt'</span>
+
+<span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Translation matrix for each chunk and rank-multiply to get MVPs for each
+</span>ud&#8592;&#8714;proj_view(+.&#215;&#9060;2)&#9064;&#8835;&#9066;/{(x z)&#8592;&#9077; &#8900; ,[&#175;0.5](x 0 z 1)@3&#8866;&#8728;.=&#9064;&#9075;4}&#168;(&#8835;l)&#215;m2/Cg<span class="org-string">'xz'</span>
+_&#8592;##.SDL_BindGPUFragmentSamplers pass 0(&#8834;##.block_data.texture sampler)1
+_&#8592;##.SDL_BindGPUIndexBuffer pass(&#8834;ib 0)##.SDL_GPU_INDEXELEMENTSIZE_32BIT
+_&#8592;##.LSE_DrawListWithPushConstants cmd_buf pass vbs inds(&#8802;vbs)ud 0 16
+</pre>
+</div>
+
+<p>
+One translation matrix is built per visible chunk from its coordinates, all of them are
+multiplied by the shared projection-view matrix in a single rank-2 inner product, and the
+flattened result is handed to the C shim, which walks the list binding each buffer and
+pushing its matrix as a push constant. The water pass that follows is the same six lines
+with the water buffers, and its model matrix carries the wave:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">wl&#8592;water_level+0.1&#215;1&#9675;water_cnt
+</pre>
+</div>
+
+<p>
+A global sine on an accumulating counter. Every body of water in the world therefore
+rises and falls together, at one height.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-collision" class="outline-2">
+<h2 id="collision"><span class="section-number-2">10.</span> Collision</h2>
+<div class="outline-text-2" id="text-collision">
+<div class="org-src-container">
+<pre class="src src-apl">Axis_check&#8592;{
+  <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">&#9077; &#8592;&#8594; velocity where only one field is set, rest are 0
+</span>  <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Returns vector (collision, velocity)
+</span>    s&#8592;&#215;+/&#9077;
+    min&#8592;(x y z)-(half 0 half) &#8900; max&#8592;(x y z)+(half height half)
+    old&#8592;[min &#8900; max]
+    new&#8592;(1&#9015;old)&#8968;@1&#8866;(0&#9015;old)&#8970;@0&#8866;old(+&#9060;1)&#9077; <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">resize AABB to encompass velocity
+</span>    Touch&#8592;{(&#8970;0&#9015;&#9077;)(+&#9060;1)&#8593;,&#9075;(&#8968;1&#9015;&#9077;)-(&#8970;0&#9015;&#9077;)}
+    m&#8592;{0&lt;&#9077;&#9015;##.world.chunks}&#168;##.world.Transform_points blks&#8592;new~&#9061;&#8595;&#9061;Touch old
+    (~1&#8714;m):0,&#9077;
+    blks&#8592;(&#8802;m)&#8593;blks
+    cntr&#8592;(+&#9023;&#247;&#8802;)old
+    blks_aabb&#8592;&#8593;(&#8834;1 1 1)&#8728;+&#9051;(,&#9064;&#9061;&#8834;)m/blks
+    blks_cntr&#8592;(+&#9023;&#247;&#8802;)blks_aabb
+    best&#8592;&#8835;&#9035;{0.5*&#9064;+/2*&#9064;cntr-&#9077;}&#168;&#8838;blks_cntr <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">fetch collided block closest to player center
+</span>    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Minkowski sum + recenter on origin
+</span>    h&#8592;0.5&#215;|old(+&#9061;{-&#9023;&#9077;})&#8593;best&#9015;[1]blks_aabb
+    mkws_box&#8592;&#8593;(-h &#8900; h)+best&#9015;blks_cntr
+    stick&#8592;(0&#8800;&#9077;)/mkws_box&#9015;&#9064;s&lt;0
+    cur&#8592;(0&#8800;&#9077;)/(x y z)+(0 &#8900; height&#247;2 &#8900; 0) <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">special case
+</span>    d&#8592;cur-stick
+    s,d@(0&#8728;&#8800;&#8866;)0 0 0
+}
+</pre>
+</div>
+
+<p>
+A swept bounding box, one axis at a time. The player&rsquo;s box is grown to cover the
+velocity for this frame, <code>Touch</code> enumerates every block position that grown box overlaps,
+and those positions are looked up in the world. If nothing is solid, the velocity passes
+through untouched.
+</p>
+
+<p>
+If something is solid, the candidates are sorted by distance from the player&rsquo;s centre and
+the nearest is chosen. The Minkowski sum of the two boxes, recentred on the origin,
+reduces the box-versus-box problem to a point-versus-box one, and the allowed velocity
+falls out of the distance to the relevant edge. The sign of the incoming velocity decides
+which edge that is.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">Bound_check&#8592;{
+  <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">&#9077; &#8592;&#8594; velocity
+</span>  <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Returns x,y,z directions with &#175;1 or 1 indicating low or up collision
+</span>  <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">e.g., 0 &#175;1 0 means touching ground.
+</span>    v&#8592;&#9077; &#8900; m&#8592;0&#9076;&#9064;,&#9064;&#8802;v &#8900; (0 0&#9033;m)&#8592;v
+    0&#9015;&#9033;&#8593;{
+        axis&#8592;Axis_check &#9077;
+        (x y z)+&#8592;1&#8595;axis
+        axis
+    }&#168;&#8595;m
+}
+</pre>
+</div>
+
+<p>
+The velocity is spread onto the diagonal of a three-by-three matrix, so each row is the
+velocity isolated to one axis. Each row is checked and applied in turn, and the collected
+first column reports which faces were touched. The vertical component of that answer
+drives the jump logic, which has three cases: on the ground and jumping, on the ground,
+and airborne.
+</p>
+
+<p>
+The one piece of frame logic that is defensive rather than declarative sits at the top of
+<code>Update</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl"><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">If the chunk isn't loaded yet freeze all movement updates
+</span>:If ~(##.world.Cg<span class="org-string">'xz'</span>)&#8714;&#9064;&#8970;16&#247;&#9064;(x z &#8900; )
+    :Return
+:EndIf
+</pre>
+</div>
+
+<p>
+Without it the player falls through a world that has not finished streaming in. This was
+salvaged from the abandoned isolates branch, along with the worst-frame-rate counter.
+</p>
+</div>
+</div>
+<div id="outline-container-picking" class="outline-2">
+<h2 id="picking"><span class="section-number-2">11.</span> Picking, and the function that is not used</h2>
+<div class="outline-text-2" id="text-picking">
+<p>
+Two ray casters exist. The good one is dead code.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">Ray_hit&#8592;{
+    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">&#9082; &#8592;&#8594; position
+</span>    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">&#9077; &#8592;&#8594; velocity
+</span>    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Conversion of the fast voxel traversal algorithm into a recursive dfn.
+</span>    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Currently not happy with this, wondering if can find non-recursive-solution...
+</span>    <span class="org-keyword">&#9109;IO</span>&#8592;0 &#8900; eps&#8592;0.0001 &#8900; p&#8592;&#9082; &#8900; s&#8592;&#215;v&#8592;{(&#8970;0.5+&#8866;)&#9077;}@{eps&gt;|&#9077;-(&#8970;0.5+&#8866;)&#9077;}&#168;&#8866;&#9077;
+    rp&#8592;&#8970;(eps&#215;v)+p
+    (&#8743;/1&gt;|v):&#8834;rp
+    m&#8592;0&#9076;&#9064;,&#9064;&#8802;v &#8900; (0 0&#9033;m)&#8592;{s&#215;0=&#9077;}&#9051;+s&#215;1||(0&lt;s)-p
+    t&#8592;&#247;&#9060;(v&#8728;&#9017;)&#168;&#8744;/&#9060;(0&#8728;&#8800;)&#168;&#9051;/&#8595;m
+    dv&#8592;v&#215;&#8970;/t
+    (&#8834;rp),(p+dv)&#8711;(v-dv)
+}
+</pre>
+</div>
+
+<p>
+This is Amanatides and Woo&rsquo;s fast voxel traversal, correct and exact: it visits precisely
+the voxels the ray crosses, in order. The author&rsquo;s own comment explains why it sits
+unused. The recursion is the sticking point, and recursion in an array language is the
+shape of solution APL is worst at rewarding.
+</p>
+
+<p>
+What the game actually calls is this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">Silly_hit&#8592;{
+    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">&#9082; &#8592;&#8594; position
+</span>    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">&#9077; &#8592;&#8594; translation
+</span>    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Simple variant of Ray_hit that is less brittle but should
+</span>    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">only be used for short distances since it's less performant!
+</span>    <span class="org-keyword">&#9109;IO</span>&#8592;0
+    &#8746;&#8970;(&#8834;&#9082;)+(&#8834;&#9077;)&#215;100&#247;&#9064;&#9075;100
+}
+</pre>
+</div>
+
+<p>
+One hundred evenly spaced samples along the ray, floored to block coordinates, with
+duplicates removed. It is a single line, it has no edge cases, and over the five units
+the player can reach it is correct enough. It is also strictly worse asymptotically,
+which is why the comment restricts it to short distances.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">Break&#8592;{
+    0=e_break:0
+    p&#8592;&#9077; ##.Silly_hit 5&#215;Get_look &#9068;
+    tp&#8592;##.world.Transform_points p
+    m&#8592;{0&lt;&#9077;&#9015;##.world.chunks}&#168;tp
+    0=&#8744;/m:0
+    blk&#8592;&#8835;m/tp
+    (blk&#9015;##.world.chunks)&#8592;0
+    ((&#8835;blk)&#8835;(##.world.Ci<span class="org-string">'dirty'</span>)&#8835;##.world.chunk_info)&#8592;1
+    1
+}
+</pre>
+</div>
+
+<p>
+Breaking a block is: sample the ray, convert world positions to indices into the
+four-dimensional chunk array, find the first solid one, set it to zero, and set that
+chunk&rsquo;s dirty flag. The dirty flag is the entire invalidation mechanism; the next frame&rsquo;s
+copy pass notices it and remeshes that chunk. Placing is the same with one extra test,
+rejecting a block that would intersect the player&rsquo;s own bounding box.
+</p>
+
+<p>
+The bridge between world space and array space is worth quoting on its own:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">Transform_points&#8592;{
+    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">&#9077; &#8592;&#8594; vector of integers 3d space
+</span>    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">returns them in terms of locations into 4d chunk matrix
+</span>    &#9082;&#8592;1
+    (filter w h)&#8592;(&#9082; &#8900; &#8835;l &#8900; 1&#8835;l)
+    0=&#8802;&#9077;:&#9068;
+    coords&#8592;&#8970;w&#247;&#9064;(&#8834;0 2)&#8728;&#9015;&#168;&#9077;
+    cindices&#8592;coords&#9075;&#9064;Cg<span class="org-string">'xz'</span> <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">map to world major cells
+</span>    {filter&#8743;&#8743;/(0&#8804;2&#8835;&#9077; &#8900; h&gt;2&#8835;&#9077;)}&#168;&#9051;/cindices,&#168;(w&#8728;|@(0 2)&#8866;)&#168;&#9077;
+}
+</pre>
+</div>
+
+<p>
+Divide by chunk width to get the chunk coordinate, look that up in the coordinate column
+to get the major cell index, take the remainder for the position inside the chunk, and
+drop anything outside the vertical range. The result is a list of four-element indices
+that can be used directly on <code>chunks</code>. Collision, breaking and placing all go through
+this one function.
+</p>
+</div>
+</div>
+<div id="outline-container-ffi" class="outline-2">
+<h2 id="ffi"><span class="section-number-2">12.</span> The seam with C and the GPU</h2>
+<div class="outline-text-2" id="text-ffi">
+</div>
+<div id="outline-container-org316c5ae" class="outline-3">
+<h3 id="org316c5ae"><span class="section-number-3">12.1.</span> What the shim is for, and why it exists</h3>
+<div class="outline-text-3" id="text-12-1">
+<p>
+Three things in SDL do not survive contact with APL&rsquo;s foreign function interface. The
+author wrote 329 lines of C for exactly those three, and nothing else.
+</p>
+</div>
+<div id="outline-container-orge3b3417" class="outline-4">
+<h4 id="orge3b3417"><span class="section-number-4">12.1.1.</span> Tagged unions</h4>
+<div class="outline-text-4" id="text-12-1-1">
+<div class="org-src-container">
+<pre class="src src-c"><span class="org-comment-delimiter">/*</span><span class="org-comment">
+    SDL_Event is a tagged union that would be very difficult to handle in APL.
+    Solve this by creating helper functions that manage the state of it.
+</span><span class="org-comment-delimiter">*/</span>
+<span class="org-type">SDL_Event</span> <span class="org-variable-name">global_event</span>;
+
+<span class="org-type">bool</span> <span class="org-function-name">LSE_PollEvent</span>() { <span class="org-keyword">return</span> SDL_PollEvent(&amp;global_event); }
+<span class="org-type">bool</span> <span class="org-function-name">LSE_CheckEvent</span>(<span class="org-type">SDL_EventType</span> <span class="org-variable-name">type</span>) { <span class="org-keyword">return</span> global_event.type == type; }
+<span class="org-type">SDL_Keycode</span> <span class="org-function-name">LSE_GetKeyPressed</span>() { <span class="org-keyword">return</span> global_event.key.key; }
+
+<span class="org-type">void</span> <span class="org-function-name">LSE_GetMouseMoveRel</span>(<span class="org-type">int32_t</span>* <span class="org-variable-name">xrel</span>, <span class="org-type">int32_t</span>* <span class="org-variable-name">yrel</span>) {
+    *xrel = global_event.motion.xrel;
+    *yrel = global_event.motion.yrel;
+}
+</pre>
+</div>
+
+<p>
+One file-scope event, and a predicate per question the APL side might ask. The APL code
+never sees the union at all; it asks &ldquo;was this a key press&rdquo; and then &ldquo;which key&rdquo;.
+</p>
+</div>
+</div>
+<div id="outline-container-orgcfae7d8" class="outline-4">
+<h4 id="orgcfae7d8"><span class="section-number-4">12.1.2.</span> Structs holding pointers to structs</h4>
+<div class="outline-text-4" id="text-12-1-2">
+<div class="org-src-container">
+<pre class="src src-c"><span class="org-comment-delimiter">/*</span><span class="org-comment">
+    I don't think APL's &#9109;NA supports pointers to a struct with pointers without
+   using `P` so this is just a set of helper functions to help split up the
+   different parameters of the GraphicsPipeline.
+</span><span class="org-comment-delimiter">*/</span>
+<span class="org-type">SDL_GPUGraphicsPipelineCreateInfo</span> <span class="org-variable-name">global_params</span>;
+
+<span class="org-type">void</span> <span class="org-function-name">LSE_PipelineClearParams</span>() {
+    SDL_memset(&amp;global_params, 0, <span class="org-keyword">sizeof</span>(global_params));
+}
+<span class="org-type">SDL_GPUGraphicsPipeline</span>* <span class="org-function-name">LSE_PipelineCreate</span>(<span class="org-type">SDL_GPUDevice</span>* <span class="org-variable-name">device</span>) {
+    <span class="org-keyword">return</span> SDL_CreateGPUGraphicsPipeline(device, &amp;global_params);
+}
+</pre>
+</div>
+
+<p>
+Pipeline creation becomes a sequence of setter calls against one static struct, then a
+create. The C file also documents a second trap it had to work around: an array passed in
+by reference is only guaranteed for the duration of the call, so vertex descriptions and
+colour targets are copied into file-scope buffers rather than kept by pointer.
+</p>
+</div>
+</div>
+<div id="outline-container-orgbb49f37" class="outline-4">
+<h4 id="orgbb49f37"><span class="section-number-4">12.1.3.</span> Linked lists and per-draw loops</h4>
+<div class="outline-text-4" id="text-12-1-3">
+<div class="org-src-container">
+<pre class="src src-c"><span class="org-type">void</span> <span class="org-function-name">LSE_DrawListWithPushConstants</span>(<span class="org-type">SDL_GPUCommandBuffer</span>* <span class="org-variable-name">buf</span>,
+                                   <span class="org-type">SDL_GPURenderPass</span>* <span class="org-variable-name">pass</span>,
+                                   <span class="org-type">SDL_GPUBuffer</span>** <span class="org-variable-name">buffers</span>, <span class="org-type">uint32_t</span>* <span class="org-variable-name">indices</span>,
+                                   <span class="org-type">uint32_t</span> <span class="org-variable-name">buffer_count</span>,
+                                   <span class="org-type">float</span>* <span class="org-variable-name">push_constant_data</span>, <span class="org-type">uint32_t</span> <span class="org-variable-name">slot</span>,
+                                   <span class="org-type">uint32_t</span> <span class="org-variable-name">stride</span>) {
+    <span class="org-keyword">for</span> (<span class="org-type">int</span> <span class="org-variable-name">i</span> = 0; i &lt; buffer_count; i++) {
+        <span class="org-type">SDL_GPUBufferBinding</span> <span class="org-variable-name">binding</span>;
+        binding.buffer = buffers[i];
+        binding.offset = 0;
+        SDL_PushGPUVertexUniformData(buf, 0, &amp;push_constant_data[i * stride],
+                                     stride * <span class="org-keyword">sizeof</span>(<span class="org-type">float</span>));
+        SDL_BindGPUVertexBuffers(pass, 0, &amp;binding, 1);
+        SDL_DrawGPUIndexedPrimitives(pass, indices[i], 1, 0, 0, 0);
+    }
+}
+</pre>
+</div>
+
+<p>
+This is the loop APL would have had to run as a dfn over hundreds of chunks, each
+iteration crossing the foreign function boundary several times. Hoisting the whole loop
+into C turns one draw call per chunk into one call per frame. SDL3_ttf&rsquo;s linked-list text
+API is handled the same way.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org2c9f800" class="outline-3">
+<h3 id="org2c9f800"><span class="section-number-3">12.2.</span> Declaring the bindings</h3>
+<div class="outline-text-3" id="text-12-2">
+<div class="org-src-container">
+<pre class="src src-apl">pad &#8592; <span class="org-string">'U1'</span>
+bool &#8592; <span class="org-string">'I1'</span>
+u8 &#8592; <span class="org-string">'U1'</span>
+i32 &#8592; <span class="org-string">'I4'</span>
+u32 &#8592; <span class="org-string">'U4'</span>
+f32 &#8592; <span class="org-string">'F4'</span>
+f32_arr &#8592; <span class="org-string">'&lt;F4[]'</span>
+u8_arr &#8592; <span class="org-string">'&lt;U1[]'</span>
+ptr &#8592; ,<span class="org-string">'P'</span>
+cstr &#8592; <span class="org-string">'&lt;0C1[]'</span>
+
+FColor &#8592; (f32 f32 f32 f32)
+GPUColorTargetInfo &#8592; (ptr u32 u32 FColor i32 i32 ptr u32 u32 bool bool u8 u8)
+
+fns &#8592; (
+<span class="org-string">'LSE_MemcpyU8'</span>  &#9068; (ptr u8_arr u32)
+<span class="org-string">'LSE_PollEvent'</span> bool &#9068;
+<span class="org-string">'LSE_CheckEvent'</span> bool i32
+<span class="org-string">'LSE_PipelineSetVertexInput'</span> &#9068; (<span class="org-string">'&lt;'</span>(u32 u32 i32 u32) <span class="org-string">'[]'</span> u32 <span class="org-string">'&lt;'</span>(u32 u32 i32 u32) <span class="org-string">'[]'</span> u32)
+<span class="org-string">'LSE_DrawListWithPushConstants'</span> &#9068; (ptr ptr <span class="org-string">'&lt;P[]'</span> u32_arr u32 f32_arr u32 u32)
+<span class="org-string">'LSE_BeginDepthLessRenderPass'</span> ptr (ptr <span class="org-string">'&lt;'</span> GPUColorTargetInfo u32)
+)
+</pre>
+</div>
+
+<p>
+Dyalog&rsquo;s <code>⎕NA</code> takes its signatures as strings. Rather than write those strings, the
+project builds them out of named type constants and nested vectors, then flattens them
+with a small recursive helper:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">Build_args&#8592;{
+    <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Recursively go down a nested vector and unroll it to produce
+</span>    <span class="org-comment-delimiter">&#9053;     </span><span class="org-comment">a definition that fits &#9109;NA format.
+</span>    (&#9068;&#8801;&#9077;):&#9068;
+    2=|&#8801;&#9077;:&#175;1&#8595;&#8714;&#9077;,&#168;<span class="org-string">' '</span>  <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">flat-vector
+</span>    2&gt;|&#8801;&#9077;:&#9077;           <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">1-itemed
+</span>    deep&#8592;1&lt;|&#8801;&#168;&#9077;
+    args&#8592;&#9077;
+    (deep/args)&#8592;(<span class="org-string">'{'</span>,Build_args,<span class="org-string">'}'</span>&#9064;)&#168;deep/args
+    &#175;1&#8595;&#8714;args,&#168;<span class="org-string">' '</span>
+}
+</pre>
+</div>
+
+<p>
+Nesting depth drives the recursion: anything deeper than a flat vector is a struct and
+gets wrapped in braces. The loader reports every failed symbol instead of dying on the
+first one, which matters when a signature is subtly wrong.
+</p>
+</div>
+</div>
+<div id="outline-container-org0de20e5" class="outline-3">
+<h3 id="org0de20e5"><span class="section-number-3">12.3.</span> The binding that does not work</h3>
+<div class="outline-text-3" id="text-12-3">
+<div class="org-src-container">
+<pre class="src src-apl"><span class="org-string">'LSE_PipelineSetDepthStencil'</span> &#9068; (i32 u8 u8 bool bool bool)
+<span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Remove StencilOpStates temporarily, that might be the problem
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Weird padding issues when they are added in the arguments!
+</span><span class="org-comment-delimiter">&#9053;</span><span class="org-comment">'LSE_PipelineSetDepthStencil' &#9068; (i32 StencilOpState StencilOpState u8 u8 bool bool bool)</span>
+</pre>
+</div>
+
+<p>
+Two stencil operation states, passed by reference inside a struct passed by reference,
+produce padding the interface gets wrong. The C side carries the same scar:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-c"><span class="org-comment-delimiter">// </span><span class="org-comment">Commented out for bugfixing if I ever need back_stencil_state and</span>
+</pre>
+</div>
+
+<p>
+So the depth and stencil stage ships simplified, with depth testing but no stencil
+operations. This is an interpreter limitation, not a design choice, and it is one of the
+few places where the project is blocked by something entirely outside it. The same class
+of limitation decided the graphics API in the first place: Dyalog restricts callback
+functions to one specific Fortran library, which ruled out wgpu-native and left SDL GPU.
+</p>
+</div>
+</div>
+<div id="outline-container-build" class="outline-3">
+<h3 id="build"><span class="section-number-3">12.4.</span> Building the shim</h3>
+<div class="outline-text-3" id="text-build">
+<div class="org-src-container">
+<pre class="src src-bash"><span class="org-builtin">set</span> -euo pipefail
+<span class="org-comment-delimiter"># </span><span class="org-comment">Produces libLSE.dylib (macOS) or libLSE.so (Linux) in ./libs,
+</span><span class="org-comment-delimiter"># </span><span class="org-comment">alongside copies of the SDL3 shared libraries it links against.
+</span><span class="org-builtin">cd</span> <span class="org-string">"$(dirname "$0")/../lse"</span>
+mkdir -p build &amp;&amp; <span class="org-builtin">cd</span> build
+cmake ..
+make
+make install
+</pre>
+</div>
+
+<p>
+The CMake file also copies the SDL3, SDL3_image and SDL3_ttf shared libraries into
+<code>libs/</code>, because the APL side finds its libraries by scanning that one directory:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">Run;libs;Path
+libs&#8592;(&#8835;0 <span class="org-keyword">&#9109;NINFO</span>&#9056;1,&#8728;<span class="org-string">'/*'</span>)<span class="org-string">'libs'</span>
+Path&#8592;{
+    r&#8592;(&#9080;&#8744;/&#9060;(&#9077;&#8728;&#9079;)&#168;)&#9051;&#8835;libs
+    1&#8800;&#8801;r:(<span class="org-string">'Can''t find lib '</span>,&#9077;)<span class="org-keyword">&#9109;SIGNAL</span> 201
+    r
+}
+sdl3.Load_lib Path<span class="org-string">'SDL3.'</span>
+sdl3_image.Load_lib Path<span class="org-string">'SDL3_image.'</span>
+sdl3_ttf.Load_lib Path<span class="org-string">'SDL3_ttf.'</span>
+lse.Load_lib Path<span class="org-string">'LSE.'</span>
+</pre>
+</div>
+
+<p>
+Matching by substring rather than by exact name is what lets the same code find
+<code>libSDL3.dylib</code>, <code>libSDL3.so.0</code> and <code>SDL3.dll</code> without knowing which platform it is on.
+</p>
+</div>
+</div>
+<div id="outline-container-orgfee594d" class="outline-3">
+<h3 id="orgfee594d"><span class="section-number-3">12.5.</span> Shaders</h3>
+<div class="outline-text-3" id="text-12-5">
+<p>
+Seven shaders, written once in GLSL and cross-compiled to Metal, SPIR-V and DXIL by a
+shell script, with all three outputs committed. Platform selection happens in APL:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">Get_shader_format&#8592;{
+    os&#8592;(<span class="org-string">'Mac'</span> &#8900; <span class="org-string">'Linux'</span> &#8900; <span class="org-string">'Windows'</span>)
+    formats&#8592;(
+        SDL_GPU_SHADERFORMAT_MSL
+        SDL_GPU_SHADERFORMAT_SPIRV
+        SDL_GPU_SHADERFORMAT_SPIRV
+    )
+    formats&#9015;&#9064;os&#9075;&#8834;<span class="org-string">'-64'</span>~&#9064;&#8835;# <span class="org-keyword">&#9109;WG</span><span class="org-string">'APLVersion'</span>
+}
+</pre>
+</div>
+
+<p>
+Note the third entry. Windows gets SPIR-V and the Vulkan backend, not DXIL and DirectX
+12, even though the DXIL shaders are built and committed. A pipeline creation error on
+the DirectX 12 backend forced the rollback, view distance was cut to compensate, and the
+backend is still chosen by a hardcoded table rather than by capability. This is the open
+defect a Windows player notices first.
+</p>
+
+<p>
+The fragment shader for the world is five lines of substance, all of it fog:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-glsl">layout (std140, set = 3, binding = 0) uniform FogInfo {
+    float fog_start;
+    float fog_end;
+};
+vec4 fog_color = vec4(0.47, 0.48, 0.49, 1.0);
+
+void main() {
+    float fog_factor = (fog_end - z_depth) / (fog_end - fog_start);
+    fog_factor = clamp(fog_factor, 0.0, 1.0);
+    o_color = mix(fog_color, texture(sample_tex, vec3(uv)), fog_factor);
+}
+</pre>
+</div>
+
+<p>
+Texture and fog. There is no lighting term anywhere in the pipeline, which is the subject
+of <a href="#open">where the array style runs out</a>.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-frame" class="outline-2">
+<h2 id="frame"><span class="section-number-2">13.</span> The frame, and the state machine</h2>
+<div class="outline-text-2" id="text-frame">
+</div>
+<div id="outline-container-orgf1d7bc3" class="outline-3">
+<h3 id="orgf1d7bc3"><span class="section-number-3">13.1.</span> States as labels and a computed goto</h3>
+<div class="outline-text-3" id="text-13-1">
+<div class="org-src-container">
+<pre class="src src-apl"><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">State Machine Enumeration based off of "My Favorite Verbose Programming Technique"
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Was previously doing namespace swapping for state handling
+</span>(TICK QUIT BACK NEXT) &#8592; 1+&#9075;4
+
+&#8711; <span class="org-function-name">Game_loop</span> core
+  ##.menu_state.Init core
+
+<span class="org-builtin"> &#8710;_MENU_EVENT_:</span>&#8594;<span class="org-keyword">&#9109;LC</span>+##.menu_state.Input _Exhaust_with core
+<span class="org-builtin"> &#8710;_MENU_EVENT_TICK:</span>&#8594;&#8710;_MENU_EVENT_
+<span class="org-builtin"> &#8710;_MENU_EVENT_QUIT:</span>&#8594;&#8710;_MENU_QUIT
+<span class="org-builtin"> &#8710;_MENU_EVENT_BACK:</span>&#8728;&#8728;&#8728;
+<span class="org-builtin"> &#8710;_MENU_EVENT_NEXT:</span>&#8594;&#8710;_MENU_
+
+<span class="org-builtin"> &#8710;_MENU_:</span>&#8594;<span class="org-keyword">&#9109;LC</span>+##.menu_state.Loop_menu core
+<span class="org-builtin"> &#8710;_MENU_TICK:</span>&#8594;&#8710;_MENU_EVENT_
+<span class="org-builtin"> &#8710;_MENU_QUIT:</span>##.menu_state.Release core &#8900; &#8594;0
+<span class="org-builtin"> &#8710;_MENU_BACK:</span>&#8728;&#8728;&#8728;
+<span class="org-builtin"> &#8710;_MENU_NEXT:</span>&#8594;&#8710;_SAVES_EVENT_
+</pre>
+</div>
+
+<p>
+Each state function returns one of four small integers. <code>⎕LC</code> is the current line, so
+<code>→⎕LC+result</code> jumps to one of the four labelled lines immediately following, each of
+which jumps on to the real destination. Transitions that should be impossible are written
+<code>∘∘∘</code>, which signals an error if ever reached. The whole machine is a flat, readable table
+of where each state can go, and the pattern is borrowed from an APL Asteroids
+implementation. The author notes it replaced an earlier design that swapped namespaces,
+and that this is an experiment in whether the verbose form reads better.
+</p>
+
+<p>
+Each state runs its event queue to exhaustion before updating, via an operator that first
+handles the two events every state shares:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">&#8711; a&#8592;(Exhaust_fn <span class="org-function-name">_Exhaust_with</span>)core
+  a&#8592;TICK
+  :If 0=&#8835;##.LSE_PollEvent
+      a&#8592;NEXT
+      :Return
+  :EndIf
+  :If ##.LSE_CheckEvent ##.SDL_EVENT_QUIT
+      a&#8592;QUIT
+  :ElseIf ##.LSE_CheckEvent ##.SDL_EVENT_KEY_DOWN
+      :If ##.SDLK_Q=&#8835;##.LSE_GetKeyPressed &#9068;
+          a&#8592;QUIT
+      :EndIf
+  :ElseIf ##.LSE_CheckEvent ##.SDL_EVENT_WINDOW_RESIZED
+      (core.w core.h)&#8592;##.LSE_GetWindowResize 0 0
+  :EndIf
+  Exhaust_fn core
+&#8711;
+</pre>
+</div>
+
+<p>
+An empty queue returns <code>NEXT</code>, which is how &ldquo;drain the events, then update&rdquo; is expressed
+without a while loop.
+</p>
+</div>
+</div>
+<div id="outline-container-org548d9f1" class="outline-3">
+<h3 id="org548d9f1"><span class="section-number-3">13.2.</span> Input as a jump table</h3>
+<div class="outline-text-3" id="text-13-2">
+<p>
+The player&rsquo;s input handler is written in the same style, and it is the one place where
+the result is arguably harder to read than the alternative:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl"> <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Replaced nested if with this, will see if it feels better...
+</span> &#8594;(E_KD_ E_KU_ E_MM E_MBD_)/&#9064;##.LSE_CheckEvent&#168;e
+ &#8594;E_DONE
+<span class="org-builtin">E_KD_:</span>&#8594;<span class="org-keyword">&#9109;LC</span>+1+ekd&#9075;&#8835;##.LSE_GetKeyPressed &#9068;
+<span class="org-builtin">E_KD_W:</span>e_w&#8592;1 &#8900; &#8594;E_DONE
+<span class="org-builtin">E_KD_A:</span>e_a&#8592;1 &#8900; &#8594;E_DONE
+</pre>
+</div>
+
+<p>
+A vector of event predicates selects a label; the key code is looked up in a vector of
+key constants and its index becomes another jump. Input state is a set of flags cleared
+at the end of each update, so the physics step reads flags rather than events.
+</p>
+</div>
+</div>
+<div id="outline-container-orgb208894" class="outline-3">
+<h3 id="orgb208894"><span class="section-number-3">13.3.</span> One frame</h3>
+<div class="outline-text-3" id="text-13-3">
+<div class="org-src-container">
+<pre class="src src-apl">&#8711; a&#8592;<span class="org-function-name">Loop</span> core
+  a&#8592;##.state.TICK
+  Update core
+  Draw core
+&#8711;
+</pre>
+</div>
+
+<p>
+<code>Update</code> measures the frame time, pushes it onto two 60-element ring buffers for the
+average and worst frame rate, updates the resident chunk set, advances the water wave and
+the player, rebuilds the view matrix, and rewrites the statistics text. <code>Draw</code> has a
+fixed shape:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">cmd_buf&#8592;##.SDL_AcquireGPUCommandBuffer core.device
+pass&#8592;##.SDL_BeginGPUCopyPass cmd_buf
+##.world.Copy_chunks core.device pass
+##.text.Copy core.device pass
+_&#8592;##.SDL_EndGPUCopyPass pass
+(res swap _ _)&#8592;##.SDL_WaitAndAcquireGPUSwapchainTexture cmd_buf core.window 0 0 0
+</pre>
+</div>
+
+<p>
+One copy pass for everything that changed this frame, then the world render pass with
+depth, then an optional depth-less pass for the interface, then submit. <code>Copy_chunks</code> is
+where the dirty flags are consumed: it fills the shared transfer buffer with meshed
+chunks until either the buffer is full or no dirty chunks remain, which is the second
+throttle in the system.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">copy_table&#8592;{
+    (vs ic wvs wic)&#8592;Copy_chunk(chunks&#9015;&#9064;idxs&#8835;&#9064;&#8802;&#8835;&#9077; &#8900; p &#8900; tb_pos)
+    pos&#8592;tb_pos &#8900; tb_pos+&#8592;vs+wvs
+    &#9077;,&#168;(&#8802;copy_name)&#8593;pos vs ic wvs wic <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">set vertex buffers later
+</span>}&#9059;{(tb_size&#8804;tb_pos+vsize)&#8744;(&#8835;&#9082;)&#8805;&#9061;&#8802;idxs}&#8866;&#9068;&#9064;&#168;copy_name
+</pre>
+</div>
+
+<p>
+The power operator with a predicate is APL&rsquo;s while loop: apply this function repeatedly
+until the transfer buffer cannot hold another chunk, or every dirty chunk has been
+copied. The accumulator is itself an inverted table, built column by column, and the
+solid and water meshes are interleaved into one buffer in the order chunk A solid, chunk
+A water, chunk B solid, and so on.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-text" class="outline-2">
+<h2 id="text"><span class="section-number-2">14.</span> Text and interface, the same table trick again</h2>
+<div class="outline-text-2" id="text-text">
+<div class="org-src-container">
+<pre class="src src-apl"><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Thus have two inverted tables 'table' and 'scope,'
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Table representing text loaded in and Scope referencing what need
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">to be drawn.
+</span>tnames&#8592;<span class="org-string">'ptr'</span> <span class="org-string">'str'</span> <span class="org-string">'color'</span> <span class="org-string">'w_'</span> <span class="org-string">'h_'</span> <span class="org-string">'hash'</span>
+table&#8592;&#9068;&#9064;&#168;tnames
+Ti&#8592;tnames&#8728;&#9075;&#8728;&#8838;
+Pi&#8592;{(table&#8835;&#9064;Ti<span class="org-string">'ptr'</span>)&#9075;&#9077;}
+
+snames &#8592; <span class="org-string">'ptr'</span> <span class="org-string">'x_'</span> <span class="org-string">'y_'</span> <span class="org-string">'center'</span> <span class="org-string">'scale'</span> <span class="org-string">'rotation'</span>
+scope&#8592;&#9068;&#9064;&#168;snames
+Si&#8592;snames&#8728;&#9075;&#8728;&#8838;
+</pre>
+</div>
+
+<p>
+The same shape as the chunk table: columns, not records, with a name-to-index helper.
+What is loaded is separated from what is on screen, so switching from the normal overlay
+to the statistics overlay is one assignment of a whole table. Width, height and colour
+belong to the loaded table because they come from rasterisation and because changing a
+colour means regenerating vertex data. A checksum column detects exactly that:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">update_mask&#8592;(table&#8835;&#9064;Ti<span class="org-string">'hash'</span>)&#8800;hashes&#8592;chksum&#8595;&#9033;&#8593;&#8835;&#8728;table&#168;Ti<span class="org-string">'color'</span> <span class="org-string">'str'</span>
+</pre>
+</div>
+
+<p>
+One comparison across every string in the program tells the copy pass which vertex data
+must be rebuilt this frame. The model matrices for every visible string are then produced
+in one expression, by reducing four stacks of matrices with an inner product at rank 2:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">models&#8592;proj_mat+.&#215;&#9064;&#8835;(+.&#215;&#9060;2 2)/origin rot scale trans
+</pre>
+</div>
+
+<p>
+Origin, rotation, scale and translation for all strings at once, then the projection.
+Nothing iterates.
+</p>
+</div>
+</div>
+<div id="outline-container-labels" class="outline-2">
+<h2 id="labels"><span class="section-number-2">15.</span> How arrays are labelled, and what the labels cost</h2>
+<div class="outline-text-2" id="text-labels">
+<p>
+APL gives a reader almost no help by default. A dfn&rsquo;s arguments are <code>⍺</code> and <code>⍵</code>, with no
+names at all. Arrays carry a shape but not a schema, so nothing in the language records
+that column 2 of a table is a vertex buffer pointer. Every name a human reader gets in
+this codebase is therefore a deliberate construction, and each construction resolves its
+labels at a different moment: when the file is read by a person, when the workspace is
+loaded, or on every single use at run time. That last group is the only one that can
+appear in a frame budget.
+</p>
+
+<p>
+This section is also published on its own as <code>naming-costs.md</code> beside this file, for
+readers who want the analysis without the rest of the walkthrough.
+</p>
+</div>
+<div id="outline-container-org682e805" class="outline-3">
+<h3 id="org682e805"><span class="section-number-3">15.1.</span> The six mechanisms</h3>
+<div class="outline-text-3" id="text-15-1">
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Mechanism</th>
+<th scope="col" class="org-left">Example</th>
+<th scope="col" class="org-left">Label resolved</th>
+<th scope="col" class="org-left">Run-time cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">Prose column manifest</td>
+<td class="org-left">the comment block atop <code>avg/world.apln</code></td>
+<td class="org-left">By the reader</td>
+<td class="org-left">None</td>
+</tr>
+
+<tr>
+<td class="org-left">Dfn argument headers</td>
+<td class="org-left"><code>⍝ ⍵ ←→ eye position</code></td>
+<td class="org-left">By the reader</td>
+<td class="org-left">None</td>
+</tr>
+
+<tr>
+<td class="org-left">Numbered step comments</td>
+<td class="org-left"><code>⍝ (1)</code> &#x2026; <code>⍝ (5)</code> in <code>Copy_chunk</code></td>
+<td class="org-left">By the reader</td>
+<td class="org-left">None</td>
+</tr>
+
+<tr>
+<td class="org-left">Destructuring assignment</td>
+<td class="org-left"><code>(vs ic wvs wic)←Copy_chunk ...</code></td>
+<td class="org-left">At compile time</td>
+<td class="org-left">None</td>
+</tr>
+
+<tr>
+<td class="org-left">Load-time symbol tables</td>
+<td class="org-left"><code>const_loader</code>, <code>block_data.tex_z</code></td>
+<td class="org-left">At startup, once</td>
+<td class="org-left">None at the use site</td>
+</tr>
+
+<tr>
+<td class="org-left">Name vectors plus index search</td>
+<td class="org-left"><code>cnames</code> with <code>Ci</code>, <code>Cg</code>; <code>tnames</code> with <code>Ti</code></td>
+<td class="org-left">On every use</td>
+<td class="org-left">A search, and sometimes a rebuild</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="outline-container-org12ff801" class="outline-4">
+<h4 id="org12ff801"><span class="section-number-4">15.1.1.</span> Labels the reader resolves</h4>
+<div class="outline-text-4" id="text-15-1-1">
+<p>
+The chunk table&rsquo;s schema exists only as English:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl"><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">-------------
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Table Columns
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">-------------
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">- X and Z position (cx, cz)
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">- Vertex buffer pointers for solid information and water (vb, wvb)
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">- Index count for drawing for solid and water (idx_cnt widx_cnt)
+</span><span class="org-comment-delimiter">&#9053; </span><span class="org-comment">- Whether or not it needs to be uploaded (dirty)</span>
+</pre>
+</div>
+
+<p>
+Dfn headers do the same job for arguments, and they are load-bearing in a way comments
+usually are not, because there is no parameter name to read instead:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">Axis_check&#8592;{
+  <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">&#9077; &#8592;&#8594; velocity where only one field is set, rest are 0
+</span>  <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">Returns vector (collision, velocity)</span>
+</pre>
+</div>
+
+<p>
+Both cost nothing and both can drift from the code without warning. The <code>Copy_chunk</code>
+numbered-comment scheme is the strongest form of this technique: the five markers in the
+code correspond to five paragraphs of explanation, so the function is navigable without
+being verbose.
+</p>
+
+<p>
+Short names are a deliberate part of the same strategy. <code>l</code>, <code>m</code>, <code>sp</code>, <code>d</code>, <code>v</code> name
+arrays whose shape and lifetime are both visible on screen; the documentation of such an
+array is its shape, not its identifier. Long names appear exactly where the lifetime is
+long: <code>chunk_info</code>, <code>view_distance</code>, <code>gradient_mask</code>, <code>water_level</code>.
+</p>
+</div>
+</div>
+<div id="outline-container-org1c03b77" class="outline-4">
+<h4 id="org1c03b77"><span class="section-number-4">15.1.2.</span> Labels resolved once, at load</h4>
+<div class="outline-text-4" id="text-15-1-2">
+<p>
+The best-behaved technique in the codebase. SDL&rsquo;s constants are not magic numbers in the
+source, but neither are they looked up at run time: <code>const_loader</code> parses the enum and
+define files scraped from the C headers and assigns them as ordinary APL variables.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">&#8711; <span class="org-function-name">Load_dir</span> dir
+  Parse_file&#168;&#8835;(<span class="org-keyword">&#9109;NINFO</span>&#9056;1)dir,<span class="org-string">'/*.def'</span>
+  Parse_file&#168;&#8835;(<span class="org-keyword">&#9109;NINFO</span>&#9056;1)dir,<span class="org-string">'/*.enum'</span>
+&#8711;
+</pre>
+</div>
+
+<p>
+After that, <code>SDL_GPU_BUFFERUSAGE_VERTEX</code> is a variable reference, which is as cheap as
+the integer would have been. Block data does the same thing to a vector of namespaces,
+flattening the readable form into two flat arrays once:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">data&#8592;(
+(name: <span class="org-string">'Air'</span> &#8900; tex: 0 0 0 0 0 0)
+(name: <span class="org-string">'Grass'</span> &#8900; tex: 3 3 2 0 3 3)
+...
+)
+names&#8592;<span class="org-keyword">&#9109;VGET</span>&#8728;<span class="org-string">'name'</span>&#168;data
+tex_z&#8592;&#8714;<span class="org-keyword">&#9109;VGET</span>&#8728;<span class="org-string">'tex'</span>&#168;data
+Bi&#8592;names&#8728;&#9075;&#8728;&#8838;
+</pre>
+</div>
+
+<p>
+The declaration reads as a table of records; the renderer only ever touches <code>tex_z</code>, a
+flat numeric vector indexed arithmetically. The label is paid for at startup and never
+again. The same pattern appears inside <code>Load_new_chunks</code>, where <code>⎕SHADOW</code> localises
+<code>STONE</code>, <code>GRASS</code>, <code>SAND</code> and the rest and resolves them through <code>Bi</code> once per call,
+rather than once per block.
+</p>
+</div>
+</div>
+<div id="outline-container-orgfbea5fb" class="outline-4">
+<h4 id="orgfbea5fb"><span class="section-number-4">15.1.3.</span> Labels resolved on every use</h4>
+<div class="outline-text-4" id="text-15-1-3">
+<p>
+This is the interesting group, and the only one with measurable effects.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">cnames &#8592; <span class="org-string">'cx'</span> <span class="org-string">'cz'</span> <span class="org-string">'vb'</span> <span class="org-string">'wvb'</span> <span class="org-string">'idx_cnt'</span> <span class="org-string">'widx_cnt'</span> <span class="org-string">'dirty'</span>
+chunk_info &#8592; &#9068;&#9064;&#168;cnames
+Ci &#8592; cnames&#8728;&#9075;&#8728;&#8838;
+  Cg&#8592;{
+      &#9077;&#8801;<span class="org-string">'xz'</span>:&#8595;&#9033;&#8593;chunk_info&#9015;&#9064;&#8834;Ci<span class="org-string">'cx'</span> <span class="org-string">'cz'</span>
+      &#9077;&#8801;<span class="org-string">'enc_xz'</span>:(2*16)&#8869;&#8593;chunk_info&#9015;&#9064;&#8834;Ci<span class="org-string">'cx'</span> <span class="org-string">'cz'</span>
+      chunk_info&#8835;&#9064;Ci &#9077;
+  }
+</pre>
+</div>
+
+<p>
+A call site reads <code>Cg'dirty'</code>, which is about as legible as a struct field access in any
+other language. Three things happen that the call site does not show: the name is
+enclosed, it is searched for in a seven-element vector of character vectors, and in two
+cases a whole column is <b>computed</b> rather than fetched.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org3a0dd59" class="outline-3">
+<h3 id="org3a0dd59"><span class="section-number-3">15.2.</span> The space effects</h3>
+<div class="outline-text-3" id="text-15-2">
+</div>
+<div id="outline-container-orgfb49ba1" class="outline-4">
+<h4 id="orgfb49ba1"><span class="section-number-4">15.2.1.</span> Column-major storage is a space win, not a cost</h4>
+<div class="outline-text-4" id="text-15-2-1">
+<p>
+The labelling scheme and the storage layout are the same decision. Naming columns rather
+than fields pushes the data into an inverted table, which lets Dyalog narrow each column
+to its own type: coordinates to small integers, the dirty flag to a bit, buffer pointers
+to full-width integers. A record-per-chunk layout could not do this, because one array
+must have one type.
+</p>
+
+<p>
+The author measured exactly this effect on a nine-attribute, ten-thousand-row table:
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Layout</th>
+<th scope="col" class="org-left"><code>⎕SIZE</code>, bytes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">Simple matrix, 10000 by 9</td>
+<td class="org-left">720,040</td>
+</tr>
+
+<tr>
+<td class="org-left">Inverted, 9 columns</td>
+<td class="org-left">540,392</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+The first figure is arithmetic confirmation of the mechanism: 10000 by 9 doubles is
+720,000 bytes, plus a 40-byte header. Every value is a double because one array has one
+type. Inverting it lets the three columns whose values fall under 256 become bytes, and a
+quarter of the memory disappears. The real chunk table is narrower but the direction is
+the same, and the whole 441-chunk world at view distance 10 is cheap enough that the
+author&rsquo;s measured interpreter total is 22 MB at distance 8.
+</p>
+</div>
+</div>
+<div id="outline-container-orgc670ebe" class="outline-4">
+<h4 id="orgc670ebe"><span class="section-number-4">15.2.2.</span> The names themselves are free, the derived columns are not</h4>
+<div class="outline-text-4" id="text-15-2-2">
+<p>
+Seven nested character vectors are a few hundred bytes, retained for the life of the
+session. Irrelevant.
+</p>
+
+<p>
+What is not free is <code>Cg'xz'</code>. It returns 441 two-element vectors, each a separate nested
+array with its own header, and it builds them fresh on each call. That is hundreds of
+small allocations per call, all of it immediately garbage. The equivalent stored form,
+two integer columns, is two flat arrays. The label hides the difference: <code>Cg'xz'</code> and
+<code>Cg'dirty'</code> look identical at the call site, and one of them is a constructor.
+</p>
+</div>
+</div>
+<div id="outline-container-org43d6887" class="outline-4">
+<h4 id="org43d6887"><span class="section-number-4">15.2.3.</span> Where space is traded away deliberately</h4>
+<div class="outline-text-4" id="text-15-2-3">
+<p>
+Two places in the codebase pay space to buy time on a lookup, and both are labelled
+lookups over large collections rather than over column names:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">mapi&#8592;(1500&#9014;)&#9068; <span class="org-comment-delimiter">&#9053; </span><span class="org-comment">(2*16)&#8869;x y</span>
+</pre>
+</div>
+
+<p>
+<code>(1500⌶)</code> asks the interpreter to maintain a hash table over the chunk index, so
+<code>mapi⍳key</code> stops being a linear scan. The hash table is extra retained memory, taken
+knowingly, because this vector grows with every chunk ever generated. The text subsystem
+makes the same trade with a checksum column that exists only to answer &ldquo;has this string
+or its colour changed since last frame&rdquo;:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">update_mask&#8592;(table&#8835;&#9064;Ti<span class="org-string">'hash'</span>)&#8800;hashes&#8592;chksum&#8595;&#9033;&#8593;&#8835;&#8728;table&#168;Ti<span class="org-string">'color'</span> <span class="org-string">'str'</span>
+</pre>
+</div>
+
+<p>
+One extra numeric column, in exchange for not re-rasterising text that has not changed.
+</p>
+
+<p>
+The contrast with the column-name tables is the point. Where the labelled collection is
+large, the author pays space for a hash. Where it is seven items long, he pays a linear
+search. Both choices are right.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org22a6e18" class="outline-3">
+<h3 id="org22a6e18"><span class="section-number-3">15.3.</span> The time effects</h3>
+<div class="outline-text-3" id="text-15-3">
+</div>
+<div id="outline-container-org2e5c1f2" class="outline-4">
+<h4 id="org2e5c1f2"><span class="section-number-4">15.3.1.</span> The name search is negligible, and should not be optimised</h4>
+<div class="outline-text-4" id="text-15-3-1">
+<p>
+<code>Ci'vb'</code> is an enclose and a find over seven short character vectors. Across the entire
+engine there are 26 <code>Cg</code> call sites and 9 <code>Ci</code> call sites, of which the per-frame paths
+reach roughly a dozen. A dozen seven-element searches per frame against a 16.6 ms budget
+is not a cost worth discussing, and replacing the names with integer constants would buy
+nothing while giving up the only schema the file has.
+</p>
+</div>
+</div>
+<div id="outline-container-orgf3543d6" class="outline-4">
+<h4 id="orgf3543d6"><span class="section-number-4">15.3.2.</span> The rebuilt column is the real cost</h4>
+<div class="outline-text-4" id="text-15-3-2">
+<p>
+Counting the calls in the two functions that run every frame:
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-right">
+
+<col  class="org-right">
+
+<col  class="org-right">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Function</th>
+<th scope="col" class="org-right"><code>Cg'xz'</code></th>
+<th scope="col" class="org-right"><code>Cg'enc_xz'</code></th>
+<th scope="col" class="org-right">Stored-column fetches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left"><code>Draw_chunks</code></td>
+<td class="org-right">3</td>
+<td class="org-right">0</td>
+<td class="org-right">5</td>
+</tr>
+
+<tr>
+<td class="org-left"><code>Update_range</code></td>
+<td class="org-right">3</td>
+<td class="org-right">1</td>
+<td class="org-right">3</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Six reconstructions of the coordinate-pair list per frame, each one a mix, a transpose
+and a split over every loaded chunk, plus one base-65536 fold. None of them is cached,
+and within a single frame none of them can differ except across the load and unload step
+in the middle of <code>Update_range</code>. At 60 frames per second and 441 resident chunks, that is
+on the order of a hundred thousand small nested arrays per second created and discarded,
+to answer a question whose answer changes at most twice a frame.
+</p>
+
+<p>
+The downstream effect is larger than the construction itself. The set operations consume
+that nested form:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">range&#8592;(ax az &#8900; )+,&#8728;.,&#9064;(&#9075;1+2&#215;view_distance)-view_distance
+new&#8592;range~Cg<span class="org-string">'xz'</span>
+old&#8592;range~&#9064;Cg<span class="org-string">'xz'</span>
+m&#8592;~old&#8714;&#9064;Cg<span class="org-string">'xz'</span>
+</pre>
+</div>
+
+<p>
+Three set operations over nested cells, where each comparison is a small array comparison
+rather than one step of a vectorised pass over an integer vector. The integer form of the
+same key already exists in the codebase, as <code>enc_xz</code>, and is already trusted enough to be
+the on-disk index.
+</p>
+</div>
+</div>
+<div id="outline-container-org724387a" class="outline-4">
+<h4 id="org724387a"><span class="section-number-4">15.3.3.</span> Three changes that keep every label and remove the cost</h4>
+<div class="outline-text-4" id="text-15-3-3">
+<ol class="org-ol">
+<li><b>Hoist the derived column.</b> Fetch <code>xz←Cg'xz'</code> once at the top of <code>Draw_chunks</code>, and
+once either side of the load and unload step in <code>Update_range</code>. Six constructions
+become three, and the call sites keep reading as names.</li>
+<li><b>Do the set arithmetic on the encoded key.</b> Build <code>range</code> encoded in base 65536 and
+compare against <code>Cg'enc_xz'</code>, so the three set operations run over a flat integer
+vector. Decode only the survivors, which are few.</li>
+<li><b>Make the derivation visible in the name.</b> <code>Cg'xz'</code> and <code>Cg'dirty'</code> cost different
+orders of magnitude and read identically. A naming convention that separates stored
+columns from computed ones, or a cached column invalidated by the load and unload
+step, would make the cost legible at the point where someone is deciding whether to
+call it three times.</li>
+</ol>
+
+<p>
+None of these changes the readability of the code, which is the test any change here has
+to pass. The reason the labels are worth their cost in the first place is that the
+schema-free array is the thing that makes the rest of this document possible: one
+compress unloads a chunk, one inner product culls the world. The names are what let a
+reader know which column the compress was applied to.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-orgb8114e6" class="outline-3">
+<h3 id="orgb8114e6"><span class="section-number-3">15.4.</span> The honest summary</h3>
+<div class="outline-text-3" id="text-15-4">
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Labelling technique</th>
+<th scope="col" class="org-left">Space</th>
+<th scope="col" class="org-left">Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">Comments and dfn headers</td>
+<td class="org-left">Zero</td>
+<td class="org-left">Zero</td>
+</tr>
+
+<tr>
+<td class="org-left">Load-time symbol tables</td>
+<td class="org-left">One flat array per label set</td>
+<td class="org-left">Zero at the use site</td>
+</tr>
+
+<tr>
+<td class="org-left">Column names with index search</td>
+<td class="org-left">A few hundred bytes, retained</td>
+<td class="org-left">Negligible, around a dozen searches a frame</td>
+</tr>
+
+<tr>
+<td class="org-left">Named getter over a derived column</td>
+<td class="org-left">Hundreds of small allocations per call</td>
+<td class="org-left">The dominant labelling cost, six rebuilds a frame</td>
+</tr>
+
+<tr>
+<td class="org-left">Hashed index, <code>(1500⌶)</code></td>
+<td class="org-left">A hash table, deliberately</td>
+<td class="org-left">Turns a linear scan into a lookup</td>
+</tr>
+
+<tr>
+<td class="org-left">Checksum column</td>
+<td class="org-left">One numeric column</td>
+<td class="org-left">Avoids re-rasterising unchanged text</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Labels resolved by the reader are free. Labels resolved at load are free at the point of
+use. Labels resolved at run time cost a search, which does not matter, and labels that
+hide a derivation cost the derivation, which does.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-open" class="outline-2">
+<h2 id="open"><span class="section-number-2">16.</span> Where the array style runs out</h2>
+<div class="outline-text-2" id="text-open">
+<p>
+Everything above is an argument that the array style won. This section is the honest
+other half, and it is specific: two features are not merely unwritten but judged
+unwritable in this style at acceptable speed.
+</p>
+</div>
+<div id="outline-container-org5ef7870" class="outline-3">
+<h3 id="org5ef7870"><span class="section-number-3">16.1.</span> Lighting does not exist</h3>
+<div class="outline-text-3" id="text-16-1">
+<p>
+There is no light map, no sky light, no block light, and no lighting term in any shader.
+The conventional implementation is a breadth-first flood from the sky and from emitters,
+attenuating and stopping at solid blocks. That is a control-flow-heavy crawl over a
+16-by-128-by-16 array, and the natural APL formulation is a fixpoint that touches every
+voxel on every step.
+</p>
+</div>
+</div>
+<div id="outline-container-org2479dc0" class="outline-3">
+<h3 id="org2479dc0"><span class="section-number-3">16.2.</span> Water does not move</h3>
+<div class="outline-text-3" id="text-16-2">
+<p>
+Water renders and waves; it never flows, spreads or drains. Sea level is one global
+constant, so every body of water in the world sits at the same height, and only the
+surface layer is meshed. The blocker is the same as lighting&rsquo;s: per-tick directional
+spread from a point.
+</p>
+</div>
+</div>
+<div id="outline-container-org331b0b7" class="outline-3">
+<h3 id="org331b0b7"><span class="section-number-3">16.3.</span> The author&rsquo;s own framing</h3>
+<div class="outline-text-3" id="text-16-3">
+<blockquote>
+<p>
+Solutions to these two problems require functions over the entire 3d array, which I find
+to feel off, or venture into territory where the APL paradigm falls apart and creates
+code smell. The solution to this may be to write the equivalent C functions to handle
+these problems or to use compute shaders, but I can&rsquo;t help but feel like I am cheating on
+my initial premise by doing either.
+</p>
+</blockquote>
+
+<p>
+The naive sketch, spreading in all directions without respecting solid blocks, is a
+two-liner:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-apl">M &#8592; 3@(4 4&#8900;) &#8866; 9 9&#9076;0
+{&#9077;&#8968;&#175;1+{&#8968;/,&#9077;}&#9018;3 3&#8866;&#9077;}&#9059;&#8801;1 &#8866; M
+</pre>
+</div>
+
+<p>
+Stencil, then power to convergence. The open question is whether that can be made to
+respect occluders and still run in under two milliseconds on a real chunk. The author has
+an open invitation on exactly this, with those two conditions attached.
+</p>
+</div>
+</div>
+<div id="outline-container-org95e9218" class="outline-3">
+<h3 id="org95e9218"><span class="section-number-3">16.4.</span> The rest of the open list</h3>
+<div class="outline-text-3" id="text-16-4">
+<table>
+
+
+<colgroup>
+<col  class="org-left">
+
+<col  class="org-left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Item</th>
+<th scope="col" class="org-left">Status and reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">Windows performance</td>
+<td class="org-left">Open. DirectX 12 pipeline error forced the Vulkan rollback; backend hardcoded</td>
+</tr>
+
+<tr>
+<td class="org-left">Second play session in one process</td>
+<td class="org-left">System error 999, attributed to unlocated leaks; per-chunk buffers suspect</td>
+</tr>
+
+<tr>
+<td class="org-left">Stencil operation states</td>
+<td class="org-left">Blocked by the foreign function interface, binding commented out</td>
+</tr>
+
+<tr>
+<td class="org-left">Threading</td>
+<td class="org-left">Abandoned; isolate overhead exceeded the gain on a low-end laptop</td>
+</tr>
+
+<tr>
+<td class="org-left">Vertex buffer pools and fences</td>
+<td class="org-left">Described in the write-up, not in the code; pool capacity computed, unused</td>
+</tr>
+
+<tr>
+<td class="org-left">Fast voxel traversal</td>
+<td class="org-left">Written, correct, unused, pending a non-recursive formulation</td>
+</tr>
+
+<tr>
+<td class="org-left">Chunk-boundary face culling</td>
+<td class="org-left">Not done; borders pad with air, so seam faces are always drawn</td>
+</tr>
+
+<tr>
+<td class="org-left">Multiple disk records per system call</td>
+<td class="org-left">Open question in the most recent commit message</td>
+</tr>
+
+<tr>
+<td class="org-left">Perlin noise</td>
+<td class="org-left">Named as the intended replacement for the current value noise</td>
+</tr>
+
+<tr>
+<td class="org-left">Named save slots, rename, delete</td>
+<td class="org-left">Four fixed slots, auto-named; the save screen&rsquo;s draw routine is an empty stub</td>
+</tr>
+
+<tr>
+<td class="org-left">Shader build script in APL</td>
+<td class="org-left">A <code>TODO</code> in the shell script, waiting on nothing but time</td>
+</tr>
+
+<tr>
+<td class="org-left">Apter trees adapted to quadtrees</td>
+<td class="org-left">Future exploration, a deliberately harder fit for array style</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+A fuller version of this list, with the evidence for each item, is in <code>summary.pdf</code> beside
+this file.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org47931ef" class="outline-2">
+<h2 id="org47931ef"><span class="section-number-2">17.</span> What the experiment showed</h2>
+<div class="outline-text-2" id="text-17">
+<p>
+The engineering claims that the code supports, as distinct from the claims the write-up
+makes:
+</p>
+
+<ul class="org-ul">
+<li><b>Meshing, culling, collision, picking, terrain and streaming all fit in array style,</b>
+and all of them are short enough to read in one sitting. The performance budget holds:
+3.5 milliseconds once at startup, 0.46 to 1.8 milliseconds per chunk thereafter, 22 MB
+of interpreter memory at view distance 8.</li>
+<li><b>Iteration speed is real and visible in the repository.</b> The visibility test was
+rewritten twice and the meshing expression once, each time in a few lines. That is the
+specific claim this codebase makes most convincingly.</li>
+<li><b>The escape hatch is small and deliberate.</b> 329 lines of C, confined to three problems
+that are about C&rsquo;s data model rather than about performance.</li>
+<li><b>The schema lives in comments, and that has a price.</b> An array carries a shape but not
+a column schema, so every name in the file is a construction. Most of them are free;
+the one that is not is the named getter that quietly rebuilds a derived column six
+times a frame. See <a href="#labels">how arrays are labelled</a>.</li>
+<li><b>The failures are specific, not vague.</b> Flood fill over a large array is the wall. Not
+&ldquo;APL is slow&rdquo;; a particular algorithmic shape, named, with a benchmark attached to the
+open invitation.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-export" class="outline-2">
+<h2 id="export"><span class="section-number-2">18.</span> Exporting this document</h2>
+<div class="outline-text-2" id="text-export">
+<div class="org-src-container">
+<pre class="src src-emacs-lisp"><span class="org-comment-delimiter">;; </span><span class="org-comment">Batch export of literate.org to literate.html.
+</span><span class="org-comment-delimiter">;;   </span><span class="org-comment">emacs -Q --batch -l tangle/export.el
+</span><span class="org-comment-delimiter">;; </span><span class="org-comment">htmlize gives the C and GLSL blocks syntax colour; gnu-apl-mode does the
+</span><span class="org-comment-delimiter">;; </span><span class="org-comment">same for the APL blocks, which Org does not know about by default.
+</span>(<span class="org-keyword">require</span> '<span class="org-constant">package</span>)
+<span class="org-comment-delimiter">;; </span><span class="org-comment">An extra package directory can be added without touching ~/.emacs.d:
+</span><span class="org-comment-delimiter">;;   </span><span class="org-comment">LITERATE_ELPA=/path/to/elpa emacs -Q --batch -l tangle/export.el
+</span>(<span class="org-keyword">let</span> ((extra (getenv <span class="org-string">"LITERATE_ELPA"</span>)))
+  (<span class="org-keyword">when</span> (<span class="org-keyword">and</span> extra (file-directory-p extra))
+    (add-to-list 'package-directory-list extra)))
+(package-initialize)
+(<span class="org-keyword">require</span> '<span class="org-constant">org</span>)
+(<span class="org-keyword">require</span> '<span class="org-constant">ox-html</span>)
+(<span class="org-keyword">when</span> (<span class="org-keyword">require</span> '<span class="org-constant">htmlize</span> nil t)
+  (<span class="org-keyword">setq</span> org-html-htmlize-output-type 'css))
+(<span class="org-keyword">when</span> (<span class="org-keyword">require</span> '<span class="org-constant">gnu-apl-mode</span> nil t)
+  (add-to-list 'org-src-lang-modes '(<span class="org-string">"apl"</span> . gnu-apl)))
+(<span class="org-keyword">setq</span> org-html-doctype <span class="org-string">"html5"</span>
+      org-html-html5-fancy t
+      org-html-head-include-default-style nil
+      org-html-head-include-scripts nil
+      org-html-validation-link nil
+      org-export-with-smart-quotes t
+      org-confirm-babel-evaluate nil
+      org-export-use-babel nil)
+(find-file <span class="org-string">"literate.org"</span>)
+(org-html-export-to-html)
+</pre>
+</div>
+
+<p>
+Note <code>org-export-use-babel nil</code>: the document must export without Babel trying to
+evaluate anything, because several blocks are shell commands against this repository and
+none of the APL can run at all.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash">emacs -Q --batch -l tangle/export.el
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgbea3106" class="outline-2">
+<h2 id="orgbea3106"><span class="section-number-2">19.</span> Sources</h2>
+<div class="outline-text-2" id="text-19">
+<ul class="org-ul">
+<li>The repository, at commit <code>770e8d8</code>, 4 October 2026. All code in this document is
+quoted from it, except the two superseded culling expressions in the culling section
+and the Game of Life line in the exposed-face section.</li>
+<li><a href="https://homewithinnowhere.com/posts/2026-03-06-voxel-game.html"><i>Notes on writing a voxel game in Dyalog APL</i></a>, Kyle Croarkin, 6 March 2026. Source of
+the measurements, the two superseded culling expressions, the quoted paragraph on
+lighting and water, the inverted-table byte counts and the convergence sketch.</li>
+<li><code>summary.pdf</code> in this directory, for the implementation status in full.</li>
+<li>Iverson, <i>Notation as a Tool of Thought</i>, for suggestivity. Hsu, <i>Suggestivity and
+Idioms in APL</i>, for the reading of it used here.</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Date: 7 October 2026</p>
+<p class="author">Author: Annotated reading of namgyaaal/avoxelgame</p>
+<p class="date">Created: 2026-10-07 Wed 11:28</p>
+</div>
+</body>
+</html>

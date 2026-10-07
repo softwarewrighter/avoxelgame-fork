@@ -1,0 +1,8 @@
+# Local copy of the author's write-up, kept out of the repository.
+# Read it at the source instead:
+#   https://homewithinnowhere.com/posts/2026-03-06-voxel-game.html
+Notes on writing a voxel game in Dyalog APL.pdf
+
+# Build output
+libs/
+lse/build/

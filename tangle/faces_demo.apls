@@ -1,0 +1,22 @@
+#!/usr/local/bin/dyalogscript
+⎕IO←0
+l←3 3 3
+faces ← [
+0 1 0 ⋄ 0 1 1 ⋄ 0 0 1 ⋄ 0 0 0 ⍝ Left
+1 1 1 ⋄ 1 1 0 ⋄ 1 0 0 ⋄ 1 0 1 ⍝ Right
+1 0 0 ⋄ 0 0 0 ⋄ 0 0 1 ⋄ 1 0 1 ⍝ Bottom
+0 1 0 ⋄ 1 1 0 ⋄ 1 1 1 ⋄ 0 1 1 ⍝ Top
+1 1 0 ⋄ 0 1 0 ⋄ 0 0 0 ⋄ 1 0 0 ⍝ Back
+0 1 1 ⋄ 1 1 1 ⋄ 1 0 1 ⋄ 0 0 1 ⍝ Front
+]
+v_cnt ← ≢faces
+vertices←,[⍳2]faces+⍤1⍤2 1⊢⍉l⊤⍳×/l
+indices←,0 1 2 0 2 3∘.+⍨4×⍳4÷⍨≢vertices
+⍝ Two blocks, types 4 and 8, side by side; everything else air
+chunk←l⍴(×/l)↑4 8
+solid←chunk>0
+exposed←↑[0]{solid>⍵}¨0 1 2∘.{⍵↓[⍺](0<⍵)⌽[⍺]0,[⍺]solid}¯1 1
+m←∊exposed
+vert←vertices⌿⍨4/m
+⎕←'possible faces: ',⍕4÷⍨≢vertices
+⎕←'emitted faces:  ',⍕4÷⍨≢vert
