@@ -3,15 +3,16 @@
 Where this fork has been used as source material elsewhere. This file points outward;
 the analysis it points to lives in the other repository and is authoritative there.
 
-Last checked 7 October 2026.
+Last checked 8 October 2026.
 
 ## X_eTaL extensions: a voxel mini game in an array language of my own
 
 - **Repository:** [softwarewrighter/X_eTaL-extensions](https://github.com/softwarewrighter/X_eTaL-extensions)
 - **Document:** [`docs/voxels.md`](https://github.com/softwarewrighter/X_eTaL-extensions/blob/main/docs/voxels.md),
   locally `../X_eTaL-extensions/docs/voxels.md`, commit `3404df7`, 226 lines
-- **Changelog entry:** `CHANGES.md`, under 2026-10-07
-- **Status:** analysis only, nothing scheduled, no demo code written yet
+- **Changelog entry:** `CHANGES.md`, under 2026-10-07 and 2026-10-08
+- **Status:** building. Seven of eleven demos are written, tested and recorded; the
+  remaining four are digging, light, water and the game itself
 
 The document asks what a voxel game looks like when the array language is X_eTaL rather
 than Dyalog APL, and when the drawing is a CPU rasteriser in Rust rather than SDL's GPU
@@ -55,12 +56,21 @@ costs 71 ms and is ruled out, while a changed chunk's thousand faces cost about 
 the camera's six numbers cost nothing. A face crosses as five numbers: cell position,
 direction 0 to 5, and block type. Rust builds the quad.
 
-**Chunk borders are padded from the neighbours, not treated as air.** This repository
-pads with air and draws every border face, which the
-[literate walkthrough](literate.org) documents as deliberate overdraw. With small cubic
-chunks there are far more borders, so the plan is to pad each chunk with a one-block
-shell from its neighbours before the rotations, at 18 cubed, then cut back. That removes
-the hidden faces and the rotation wrap-around in one move.
+**Chunk borders are not treated as air.** This repository pads with air and draws every
+border face, which the [literate walkthrough](literate.org) documents as deliberate
+overdraw. Two answers were built instead. For the fixed island, faces are found over the
+whole world array at once, 18,568 of 403,092, which removes the question entirely at a
+cost of 55 ms inside a 0.4 second build. For the endless world, each streamed column is
+meshed with a border plane borrowed from its neighbours, so seams hide. Remeshing after
+an edit will use the same borrowed planes.
+
+**The world is a list of boxed chunk arrays, not one array.** This engine keeps every
+resident chunk in a single four-dimensional array and edits a block in place with
+`(blk⌷chunks)←0`. X_eTaL has no indexed assignment, since values are immutable, so an
+edit there rebuilds one 4,096-cell chunk at about 2 ms rather than touching the world.
+The document files an ask against the language for an amend primitive that returns a new
+array with some indices changed, which is APL's `@`: the same primitive this engine
+leans on to place water and sand.
 
 ### The two walls, reconsidered
 
@@ -70,31 +80,66 @@ artefact of chunk height rather than of array style:
 
 - **Sky light stops being a fixpoint entirely.** A running or-scan down each column marks
   every cell beneath a solid one as shaded. One scan, no iteration.
-- **Block light becomes bounded.** At most 15 rounds of the same six-rotation step over a
-  16-cube, about 25 ms, run only when a light or a block changes.
-- **Water becomes a cellular automaton** over the chunks near the player, one flow step a
-  tick, which is the Life idiom again.
+- **Block light becomes bounded.** Rounds of "the brightest neighbour minus one", blocked
+  by solid blocks, at about 2 ms a round for a chunk, at most 15 rounds, run only after a
+  change and spread across frames.
+- **Water becomes a cellular automaton** on levels 1 to 7 over the chunks near the
+  player, about 15 ms a chunk every few frames, which is the Life idiom again.
 
 That is a direct answer to the open invitation in the author's write-up, at a smaller
-chunk size than the one the invitation specifies.
+chunk size than the one the invitation specifies. Both are designed and budgeted but not
+yet built: they are demos 5 and 6 of the remaining work below.
 
-### The planned demos
+### The demos, as built
 
-Eight, each at `extensions/scene/demos/voxels-NAME.xtl`, each runnable, golden-tested and
-recorded before the next begins. None exists yet.
+Eleven in all, at `extensions/scene/demos/voxels-NAME.xtl` over a shared library
+`Voxels.xtl`, run with `just demo scene voxels-NAME`. Each has a golden with headless
+frames pinned where it draws, and a recording. Seven are done, every one of them
+between 13:00 on 7 October and 03:00 on 8 October.
 
-1. `voxels-chunk`, a 16-cube as layers from a height field, with water
-2. `voxels-faces`, the six-rotation mask and the face list, drawn as wireframe
-3. `voxels-solid`, the same chunk filled and depth-tested, shaded by face direction
-4. `voxels-world`, 32 chunks from noise, with per-chunk face ids and frustum culling
-5. `voxels-walk`, first-person camera, gravity, jumping, swept-box collision
-6. `voxels-dig`, the ray march, breaking and placing, remeshing the edited chunk
-7. `voxels-light`, sky light by column scan and a torch spreading in 15 rounds
-8. `voxels-game`, the mini game
+| # | Demo | State | What it showed |
+|---|---|---|---|
+| 1 | `voxels-chunk` | Done | A 16-cube from a height field in a few elementwise expressions; the view from above by a max-reduction down each column |
+| 2 | `voxels-faces` | Done | The six-rotation mask, checked against known shapes at 1, 256, 452 and 2,048 faces a direction; 1,389 of the chunk's 10,446 possible faces, drawn as outlines |
+| 3 | `voxels-solid` | Done | The same faces as shaded, depth-tested quads; 16,668 numbers crossed the bridge once |
+| 4 | `voxels-world` | Done | An island of 32 chunks, 64 by 32 by 64, from value noise as three interpolations; 18,568 faces of 403,092; 0.4 s to build and mesh, about 13 ms a frame to draw |
+| 5 | `voxels-walk` | Done | First person on the island: gravity, jumping, a swept box per axis, and the frustum test of all 32 chunks, all in X_eTaL |
+| 6 | `voxels-endless` | Done | No edges: terrain hashed from coordinates so any column stands alone, columns built one a frame around the player and dropped behind, fog at the loaded radius and a curved horizon |
+| 7 | `voxels-fly` | Done | Flying over the endless world, F to switch, level to the heading, streaming ahead one column a frame |
+| 8 | `voxels-dig` | To do | The ray-march pick, breaking and placing, remeshing one chunk with its neighbours' border planes; crosshair and hotbar |
+| 9 | `voxels-light` | To do | Sky light by column scan, torches spreading in rounds, a brightness per quad |
+| 10 | `voxels-water` | To do | Water flowing as a cellular automaton, drawn translucent |
+| 11 | `voxels-game` | To do | Gem Hunt, with all of the above, then a release step |
 
-The mini game is **Gem Hunt**: a seeded island 64 by 32 by 64, ten gems buried in stone,
-three minutes to dig them out, water filling any hole it touches. The rules, the world
-and the generation are X_eTaL; the window, the drawing and the frame clock are Rust.
+The library is 400 lines; the seven demos are 874 lines between them, from 28 lines for
+the first to 267 for flying.
+
+The mini game is still **Gem Hunt**: a seeded island, ten gems buried in stone, three
+minutes to dig them out, water filling any hole it touches. The rules, the world and the
+generation are X_eTaL; the window, the drawing and the frame clock are Rust.
+
+### What the demos changed in the plan
+
+Three predictions in the original analysis did not survive contact, and one assumption
+held:
+
+- **The renderer stayed on the CPU.** About 13 ms for 18,568 quads at 640 by 560 was
+  fast enough, so the GPU fallback was never needed. Faster still came from drawing at
+  the window's logical size on a dense display and scaling up, a quarter of the work.
+- **Rust got generic quads, not voxel-specific faces.** The plan called for `f_aces!`
+  taking a face list. What landed is `sc:q_uads!` with a depth buffer and `sc:f_og!`,
+  with X_eTaL turning faces into quads. Later demos added a first-person camera, held
+  keys and mouse motion, a curved horizon and a sky colour, plus skipping objects
+  outside the view.
+- **Two demos were inserted.** Walking came before flying as planned, but an endless
+  world was added between them, and water was split out of the lighting demo. The count
+  went from eight to eleven.
+- **The bridge budget held.** Faces still cross once per chunk change and stay in Rust.
+
+One number from the build is worth bringing back here: a lambda applied across 400,000
+cells took 36 seconds, where plain reshapes of the same data took milliseconds. The
+equivalent trap does not exist in Dyalog, and it is the clearest measured difference
+between the two interpreters so far.
 
 ### One number to reconcile
 
