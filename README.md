@@ -1,3 +1,33 @@
+# A fork, with reading notes
+
+This is a fork of [namgyaaal/avoxelgame](https://github.com/namgyaaal/avoxelgame), Kyle
+Croarkin's voxel game in Dyalog APL, MIT licensed. **No code has been changed.**
+
+You are reading `feat-analysis`, the default branch of this fork. It adds four documents
+and nothing else. The author's code is on `main`, which mirrors upstream.
+
+| Document | What it is |
+| --- | --- |
+| [`summary.pdf`](summary.pdf) | Implementation status: what works, what is open or blocked, and why |
+| [`literate.org`](literate.org) | A literate walkthrough of the engine, every block quoted from the source and annotated. Three Babel tangle targets |
+| [`literate.html`](literate.html) | The Org export of the walkthrough, for reading in a browser |
+| [`naming-costs.md`](naming-costs.md) | How arrays are labelled for human readers, and what the labels cost in space and time |
+| [`derived-work.md`](derived-work.md) | Where this engine has been used as source material elsewhere |
+
+The notes are a reading of the code, not a critique of it, and the measurements they
+quote are the author's own. His write-up is the place to start:
+[Notes on writing a voxel game in Dyalog APL](https://homewithinnowhere.com/posts/2026-03-06-voxel-game.html).
+
+To get the game itself, with none of this, use `main`:
+
+```
+git clone -b main https://github.com/softwarewrighter/avoxelgame-fork.git
+```
+
+---
+
+## Original README
+
 ![Cover](./images/cover.png)
 
 # A Voxel Game
