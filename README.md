@@ -3,8 +3,9 @@
 This is a fork of [namgyaaal/avoxelgame](https://github.com/namgyaaal/avoxelgame), Kyle
 Croarkin's voxel game in Dyalog APL, MIT licensed. **No code has been changed.**
 
-You are reading `feat-analysis`, the default branch of this fork. It adds four documents
-and nothing else. The author's code is on `main`, which mirrors upstream.
+You are reading `feat-analysis`, the default branch of this fork. It adds five documents
+and a `tangle/` directory, and no code. The author's code is on `main`, which mirrors
+upstream.
 
 | Document | What it is |
 | --- | --- |
@@ -17,6 +18,31 @@ and nothing else. The author's code is on `main`, which mirrors upstream.
 The notes are a reading of the code, not a critique of it, and the measurements they
 quote are the author's own. His write-up is the place to start:
 [Notes on writing a voxel game in Dyalog APL](https://homewithinnowhere.com/posts/2026-03-06-voxel-game.html).
+
+## Where this led
+
+The notes fed a second project. [X_eTaL-extensions](https://github.com/softwarewrighter/X_eTaL-extensions)
+rebuilds these ideas in X_eTaL, an array language of my own, drawn by a CPU rasteriser in
+Rust instead of SDL. Ten `voxels-*` demos exist so far, each one runnable, golden-tested
+and recorded.
+
+Eight of them are a ladder, each adding one capability to a voxel world: a chunk as an
+array, the exposed-face mask by six rotations, solid shaded faces, an island of 32
+chunks, walking in the first person, an endless world under a curved horizon, flying,
+then digging and building. Two are not about a world at all. They point the same voxel
+drawing at a Rubik's cube, where 26 cubies are voxels but the cube itself is 54 stickers
+and twelve permutations.
+
+Still to come: water flowing as a cellular automaton, lighting, on-screen controls for
+the cube, and the game. The water plan is the interesting one here, since flowing water
+is one of the two problems this engine's author names as not fitting array style; it is
+written up in
+[`docs/voxels.md`](https://github.com/softwarewrighter/X_eTaL-extensions/blob/main/docs/voxels.md#the-game-walking-flying-building-digging-light-water)
+and scheduled in
+[`docs/plan.md`](https://github.com/softwarewrighter/X_eTaL-extensions/blob/main/docs/plan.md#saga-14----voxel-game).
+
+[`derived-work.md`](derived-work.md) has the detail, including what the build changed in
+the plan and what it measured.
 
 To get the game itself, with none of this, use `main`:
 
